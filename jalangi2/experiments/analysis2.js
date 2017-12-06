@@ -1,3 +1,4 @@
+//node ../src/js/commands/jalangi.js --inlineIID --inlineSource --analysis analysis2.js mainExample.js
 (function (sandbox) {
   var parentFunction = {
     name: "",
@@ -5,8 +6,19 @@
     variables: [{
       name: "",
       isArgument: ""
+    }],
+    children: []
+  }
+
+  var childFunction = {
+    name: "",
+    variables: [{
+      name: "",
+      isArgument: ""
     }]
   }
+
+  childCount = 0;
 
     function MyAnalysis() {
         /**
@@ -37,15 +49,18 @@
                 // do nothing
             }
             else{
-              if (parentFunction.isPresent){ //loop through the parent variables and check if child has any of them
-                console.log (parentFunction);
-                console.log ("declare---name-" + name + "---isArgument-"+isArgument );
+              if (parentFunction.children.length > 0){ //loop through the parent variables and check if child has any of them
+                console.log (parentFunction.isPresent)
+                var variable = {name: name, isArgument: isArgument};
+                parentFunction.children[childCount-1].variables.push(variable);
+                //console.log ("declare---name-" + name + "---isArgument-"+isArgument );
               }
               else{ // push all parent variables
                 var variable = {name: name, isArgument: isArgument};
                 parentFunction.variables.push(variable);
               }
             }
+            console.log (parentFunction);
             return {result: val};
         };
 
@@ -66,8 +81,16 @@
              console.log ("---f--")
              console.log (f.name)*/
              if (!parentFunction.isPresent){
+               console.log ("function enter.....")
                 parentFunction.name = f.name;
                 parentFunction.isPresent = true;
+             }
+             else{
+               //function is a child of parent
+               //parentFunction.isPresent = true;
+               childFunction.name = f.name;
+               parentFunction.children.push(childFunction)
+               childCount = childCount + 1;
              }
              //console.log (parentFunction);
         };
@@ -89,7 +112,7 @@
          * symbolic execution.
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
-             //console.log (parentFunction);
+             console.log ("functionExit....");
              parentFunction = {};
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };

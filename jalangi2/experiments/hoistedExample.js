@@ -1,8 +1,17 @@
 function functionParent(a) {
   var b=1;
- function functionChild() {
-	return a + 1;
- }
- return functionChild();
+
+  function functionChild() {
+    return a + 1;
+  }
+
+  function functionChild2() {
+    return a + 1;
+  }
+
+ return functionChild2();
 }
-functionParent("test");
+
+module.exports = {
+    functionParent: functionParent
+}
