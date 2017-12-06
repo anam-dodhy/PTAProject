@@ -5,11 +5,16 @@ function functionParent(a) {
     return a + 1;
   }
 
-  function functionChild2() {
-    return a + 1;
+  function functionChild3() {
+    a = a+1;
+    function functionChild4(){
+      a= a+3;
+    }
+    return functionChild4()
   }
 
- return functionChild2();
+ functionChild();
+ return functionChild3();
 }
 
 module.exports = {

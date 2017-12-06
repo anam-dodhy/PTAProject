@@ -1,23 +1,16 @@
 //node ../src/js/commands/jalangi.js --inlineIID --inlineSource --analysis analysis2.js mainExample.js
 (function (sandbox) {
-  var parentFunction = {
-    name: "",
-    isPresent: false,
-    variables: [{
-      name: "",
-      isArgument: ""
-    }],
-    children: []
-  }
 
-  var childFunction = {
+  var functionAttributes = {
     name: "",
+    isParent: false,
     variables: [{
       name: "",
       isArgument: ""
     }]
   }
 
+  var parentChildStack = []
   childCount = 0;
 
     function MyAnalysis() {
@@ -44,12 +37,12 @@
          */
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             //console.log ("declare---name-" + name + "---isArgument-"+isArgument + "---val--"+ val )
-            console.log ("-----------------------------------")
+            //console.log ("------------declare-----------------------")
             if (val!=undefined && val.toString().indexOf("function") > -1){ // if the function is being declared then we need to ignore it
                 // do nothing
             }
             else{
-              if (parentFunction.children.length > 0){ //loop through the parent variables and check if child has any of them
+              /*if (parentFunction.children.length > 0){ //loop through the parent variables and check if child has any of them
                 console.log (parentFunction.isPresent)
                 var variable = {name: name, isArgument: isArgument};
                 parentFunction.children[childCount-1].variables.push(variable);
@@ -58,9 +51,9 @@
               else{ // push all parent variables
                 var variable = {name: name, isArgument: isArgument};
                 parentFunction.variables.push(variable);
-              }
+              }*/
             }
-            console.log (parentFunction);
+            //console.log ("");
             return {result: val};
         };
 
@@ -75,24 +68,26 @@
          * @returns {undefined} - Any return value is ignored
          */
         this.functionEnter = function (iid, f, dis, args) {
-			       /*console.log ("functionEnter--")
-             console.log ("---args--")
+			       console.log ("-------functionEnter--")
+             /*console.log ("---args--")
              console.log (args)
              console.log ("---f--")
              console.log (f.name)*/
-             if (!parentFunction.isPresent){
-               console.log ("function enter.....")
-                parentFunction.name = f.name;
-                parentFunction.isPresent = true;
-             }
-             else{
-               //function is a child of parent
-               //parentFunction.isPresent = true;
-               childFunction.name = f.name;
-               parentFunction.children.push(childFunction)
-               childCount = childCount + 1;
-             }
-             //console.log (parentFunction);
+
+            if (parentChildStack.length <= 1){
+              var functionAttributes= {};
+              functionAttributes.name = f.name;
+              parentChildStack.push(functionAttributes);
+            }
+            else{
+              //checkHoistability(parentChildStack)
+              parentChildStack.shift();
+              var functionAttributes = {};
+              functionAttributes.name = f.name;
+              parentChildStack.push(functionAttributes);
+            }
+
+            console.log (parentChildStack)
         };
 
         /**
@@ -113,7 +108,14 @@
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
              console.log ("functionExit....");
-             parentFunction = {};
+             if (parentChildStack.length == 1){
+               parentChildStack.pop();
+             }
+             else if (parentChildStack.length < 3){
+               //checkHoistability(parentChildStack)
+               parentChildStack.pop();
+             }
+            //console.log (parentChildStack)
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
 
