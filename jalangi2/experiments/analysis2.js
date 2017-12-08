@@ -36,10 +36,7 @@
          */
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
           //console.log ("------------declare-----------------------")
-            if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
-                // do nothing
-            }
-            else{
+            if (!checkValidityOfVariable(val, name)){
               if (parentChildStack.length !=0 && isArgument == true){ //only for variables in the argument of a function
                 pushVariable(name, isArgument, parentChildStack)
               }
@@ -59,15 +56,8 @@
          * replaced with the value stored in the <tt>result</tt> property of the object.
          */
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
-          if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
-              // do nothing
-          }
-          else{
-            if (parentChildStack.length !=0){
-              pushVariable(name, false, parentChildStack)
-            }
-          }
-            return {result: val};
+          checkAndPushVariable(name, val);
+          return {result: val};
         };
 
         /**
@@ -83,24 +73,16 @@
          * replaced with the value stored in the <tt>result</tt> property of the object.
          */
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
-          if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
-              // do nothing
-          }
-          else{
-            if (parentChildStack.length !=0){
-              pushVariable(name, false, parentChildStack)
-            }
-          }
+          checkAndPushVariable(name, val);
           return {result: val};
         };
 
-      function checkVariableExistance(variables, variable){
-        for (var i=0; i < variables.length; i++) {
-          if (variables[i].name === variable.name) {
-              return true;
+      function checkAndPushVariable(name, val){
+        if (!checkValidityOfVariable(val, name)){
+          if (parentChildStack.length !=0){
+            pushVariable(name, false, parentChildStack)
           }
         }
-        return false
       }
 
       function pushVariable (name, isArgument, parentChildStack){
@@ -111,6 +93,23 @@
         }
         parentChildStack.push(func); //push the function back on the stack
       }
+
+      function checkValidityOfVariable(val, name){
+        if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
+          return true
+        }
+        return false
+      }
+
+      function checkVariableExistance(variables, variable){
+        for (var i=0; i < variables.length; i++) {
+          if (variables[i].name === variable.name) {
+              return true;
+          }
+        }
+        return false
+      }
+
         /**
 		 * IMPLEMENT THIS FOR OUR ANALYSIS == ANAM DODHY
          * This callback is called before the execution of a function body starts.
@@ -128,7 +127,6 @@
              };
 
             if (parentChildStack.length <= 1){
-              //var functionAttributes= {};
               functionAttributes.name = f.name;
               parentChildStack.push(functionAttributes);
             }
@@ -167,7 +165,6 @@
                var poppedFunction = parentChildStack.pop();
                checkFunctionHoistability(poppedFunction)
              }
-
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
 
@@ -181,7 +178,7 @@
           for (var i=0; i < parent.variables.length; i++) {
             for (var j =0; j < poppedFunction.variables.length; j++){
               if (parent.variables[i].name === poppedFunction.variables[j].name) {
-                  console.log (poppedFunction.name + "--- can not be hoisted");
+                  console.log (poppedFunction.name + " --- can not be hoisted");
                   found = true
                   //push the parent back on top of the stack
                   break;
@@ -193,7 +190,7 @@
           }
           parentChildStack.push(parent);
           if (found == false){
-            console.log (poppedFunction.name + "--- can be hoisted. GREAT!!");
+            console.log (poppedFunction.name + " --- can be hoisted. GREAT!!");
           }
 
         }
