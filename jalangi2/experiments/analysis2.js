@@ -107,7 +107,7 @@
         var variable = {name: name, isArgument: isArgument};
         var func = parentChildStack.pop(); // take the last function
         if (!checkVariableExistance(func.variables, variable)){
-          console.log ("------------push variable-----------------------")
+          //console.log ("------------push variable-----------------------")
           func.variables.push(variable); //add varibale info to the popped function
         }
         parentChildStack.push(func); //push the function back on the stack
@@ -161,19 +161,22 @@
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
              console.log ("------functionExit------");
+             console.log (parentChildStack)
              if (parentChildStack.length == 1){
-               test = parentChildStack.pop();
-               console.log ("*********"+test.name+"*********")
-               console.log (test.variables)
+               parentChildStack.pop();
+               //console.log ("*********"+test.name+"*********")
+               //console.log (test.variables)
              }
              else if (parentChildStack.length >= 2){
                //checkHoistability(parentChildStack)
-               //console.log ("pop")
-               test = parentChildStack.pop();
-               console.log ("*********"+test.name+"*********")
-               console.log (test.variables)
+               ////console.log ("pop")
+               parentChildStack.pop();
+               //console.log ("*********"+test.name+"*********")
+               //console.log (test.variables)
              }
-            //console.log (parentChildStack)
+            console.log ("---------------------");
+            console.log (parentChildStack)
+            console.log ("------END------");
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
 
