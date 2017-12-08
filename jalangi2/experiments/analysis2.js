@@ -3,15 +3,14 @@
 
   var functionAttributes = {
     name: "",
-    isParent: false,
     variables: [{
       name: "",
       isArgument: ""
     }]
   }
 
+  var rootFunctionArguments = []
   var parentChildStack = []
-  childCount = 0;
 
     function MyAnalysis() {
         /**
@@ -36,27 +35,83 @@
          *
          */
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-            //console.log ("declare---name-" + name + "---isArgument-"+isArgument + "---val--"+ val )
-            //console.log ("------------declare-----------------------")
-            if (val!=undefined && val.toString().indexOf("function") > -1){ // if the function is being declared then we need to ignore it
+          //console.log ("------------declare-----------------------")
+            if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
                 // do nothing
             }
             else{
-              /*if (parentFunction.children.length > 0){ //loop through the parent variables and check if child has any of them
-                console.log (parentFunction.isPresent)
-                var variable = {name: name, isArgument: isArgument};
-                parentFunction.children[childCount-1].variables.push(variable);
-                //console.log ("declare---name-" + name + "---isArgument-"+isArgument );
+              if (parentChildStack.length !=0 && isArgument == true){ //only for variables in the argument of a function
+                pushVariable(name, isArgument, parentChildStack)
               }
-              else{ // push all parent variables
-                var variable = {name: name, isArgument: isArgument};
-                parentFunction.variables.push(variable);
-              }*/
             }
-            //console.log ("");
             return {result: val};
         };
 
+        /**
+         * This callback is called after a variable is read.
+         *
+         * @param {number} iid - Static unique instruction identifier of this callback
+         * @param {string} name - Name of the variable being read
+         * @param {*} val - Value read from the variable
+         * @param {boolean} isGlobal - True if the variable is not declared using <tt>var</tt> (e.g. <tt>console</tt>)
+         * @param {boolean} isScriptLocal - True if the variable is declared in the global scope using <tt>var</tt>
+         * @returns {{result: *} | undefined} - If an object is returned, the result of the read operation is
+         * replaced with the value stored in the <tt>result</tt> property of the object.
+         */
+        this.read = function (iid, name, val, isGlobal, isScriptLocal) {
+          if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
+              // do nothing
+          }
+          else{
+            if (parentChildStack.length !=0){
+              pushVariable(name, false, parentChildStack)
+            }
+          }
+            return {result: val};
+        };
+
+        /**
+         * This callback is called before a variable is written.
+         *
+         * @param {number} iid - Static unique instruction identifier of this callback
+         * @param {string} name - Name of the variable being read
+         * @param {*} val - Value to be written to the variable
+         * @param {*} lhs - Value stored in the variable before the write operation
+         * @param {boolean} isGlobal - True if the variable is not declared using <tt>var</tt> (e.g. <tt>console</tt>)
+         * @param {boolean} isScriptLocal - True if the variable is declared in the global scope using <tt>var</tt>
+         * @returns {{result: *} | undefined} - If an object is returned, the result of the write operation is
+         * replaced with the value stored in the <tt>result</tt> property of the object.
+         */
+        this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
+          if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
+              // do nothing
+          }
+          else{
+            if (parentChildStack.length !=0){
+              pushVariable(name, false, parentChildStack)
+            }
+          }
+          return {result: val};
+        };
+
+      function checkVariableExistance(variables, variable){
+        for (var i=0; i < variables.length; i++) {
+          if (variables[i].name === variable.name) {
+              return true;
+          }
+        }
+        return false
+      }
+
+      function pushVariable (name, isArgument, parentChildStack){
+        var variable = {name: name, isArgument: isArgument};
+        var func = parentChildStack.pop(); // take the last function
+        if (!checkVariableExistance(func.variables, variable)){
+          console.log ("------------push variable-----------------------")
+          func.variables.push(variable); //add varibale info to the popped function
+        }
+        parentChildStack.push(func); //push the function back on the stack
+      }
         /**
 		 * IMPLEMENT THIS FOR OUR ANALYSIS == ANAM DODHY
          * This callback is called before the execution of a function body starts.
@@ -68,26 +123,24 @@
          * @returns {undefined} - Any return value is ignored
          */
         this.functionEnter = function (iid, f, dis, args) {
-			       console.log ("-------functionEnter--")
-             /*console.log ("---args--")
-             console.log (args)
-             console.log ("---f--")
-             console.log (f.name)*/
+			       console.log ("-------functionEnter" + f.name + "-----")
+             var functionAttributes = {
+               name: "",
+               variables:  []
+             };
 
             if (parentChildStack.length <= 1){
-              var functionAttributes= {};
+              //var functionAttributes= {};
               functionAttributes.name = f.name;
               parentChildStack.push(functionAttributes);
             }
             else{
               //checkHoistability(parentChildStack)
               //parentChildStack.shift(); no need to shift as we need to keep track of the parentFunctions
-              var functionAttributes = {};
               functionAttributes.name = f.name;
               parentChildStack.push(functionAttributes);
             }
-
-            console.log (parentChildStack)
+            //console.log (parentChildStack)
         };
 
         /**
@@ -107,16 +160,20 @@
          * symbolic execution.
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
-             console.log ("functionExit....");
+             console.log ("------functionExit------");
              if (parentChildStack.length == 1){
-               parentChildStack.pop();
+               test = parentChildStack.pop();
+               console.log ("*********"+test.name+"*********")
+               console.log (test.variables)
              }
              else if (parentChildStack.length >= 2){
                //checkHoistability(parentChildStack)
                //console.log ("pop")
-               parentChildStack.pop();
+               test = parentChildStack.pop();
+               console.log ("*********"+test.name+"*********")
+               console.log (test.variables)
              }
-            // /console.log (parentChildStack)
+            //console.log (parentChildStack)
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
 

@@ -1,14 +1,14 @@
 function functionParent(a) {
   var b=1;
 
-  function functionChild() {
-    return a + 1;
+  function functionChild(b) {
+    return a + "Child";
   }
 
   function functionChild3() {
-    a = a+1;
+    a = a+"CHild3";
     function functionChild4(){
-      a= a+3;
+      a= a+"Child4";
     }
     return functionChild4()
   }
