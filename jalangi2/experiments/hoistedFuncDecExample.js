@@ -1,12 +1,12 @@
 function functionParent(a) {
   var b=1;
 
-  function functionChild(b) {
+  function functionChild(a) {
     return a + "Child";
   }
 
   function functionChild3() {
-    a = a+"CHild3";
+    b = b+"CHild3";
     function functionChild4(){
       a= a+"Child4";
     }

@@ -107,7 +107,6 @@
         var variable = {name: name, isArgument: isArgument};
         var func = parentChildStack.pop(); // take the last function
         if (!checkVariableExistance(func.variables, variable)){
-          //console.log ("------------push variable-----------------------")
           func.variables.push(variable); //add varibale info to the popped function
         }
         parentChildStack.push(func); //push the function back on the stack
@@ -123,7 +122,6 @@
          * @returns {undefined} - Any return value is ignored
          */
         this.functionEnter = function (iid, f, dis, args) {
-			       console.log ("-------functionEnter" + f.name + "-----")
              var functionAttributes = {
                name: "",
                variables:  []
@@ -140,7 +138,6 @@
               functionAttributes.name = f.name;
               parentChildStack.push(functionAttributes);
             }
-            //console.log (parentChildStack)
         };
 
         /**
@@ -160,26 +157,46 @@
          * symbolic execution.
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
-             console.log ("------functionExit------");
-             console.log (parentChildStack)
              if (parentChildStack.length == 1){
                parentChildStack.pop();
-               //console.log ("*********"+test.name+"*********")
-               //console.log (test.variables)
              }
              else if (parentChildStack.length >= 2){
-               //checkHoistability(parentChildStack)
-               ////console.log ("pop")
-               parentChildStack.pop();
-               //console.log ("*********"+test.name+"*********")
-               //console.log (test.variables)
+               //console.log ("+++++++++++++++++++++++++++++++++++++++++")
+               //console.log ("-------ORG STACK---")
+               //console.log (parentChildStack)
+               var poppedFunction = parentChildStack.pop();
+               checkFunctionHoistability(poppedFunction)
              }
-            console.log ("---------------------");
-            console.log (parentChildStack)
-            console.log ("------END------");
+
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
 
+        function checkFunctionHoistability(poppedFunction){
+          var parent = parentChildStack.pop();
+          var found = false;
+          //console.log ("-------Parent--" + parent.name + "---")
+          //console.log (parent.variables)
+          //console.log ("-------Child--" + poppedFunction.name + "---")
+          //console.log (poppedFunction.variables)
+          for (var i=0; i < parent.variables.length; i++) {
+            for (var j =0; j < poppedFunction.variables.length; j++){
+              if (parent.variables[i].name === poppedFunction.variables[j].name) {
+                  console.log (poppedFunction.name + "--- can not be hoisted");
+                  found = true
+                  //push the parent back on top of the stack
+                  break;
+              }
+            }
+            if (found == true){
+              break;
+            }
+          }
+          parentChildStack.push(parent);
+          if (found == false){
+            console.log (poppedFunction.name + "--- can be hoisted. GREAT!!");
+          }
+
+        }
     }
 
     sandbox.analysis = new MyAnalysis();
