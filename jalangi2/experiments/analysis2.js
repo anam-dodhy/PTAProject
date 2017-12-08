@@ -81,7 +81,7 @@
             }
             else{
               //checkHoistability(parentChildStack)
-              parentChildStack.shift();
+              //parentChildStack.shift(); no need to shift as we need to keep track of the parentFunctions
               var functionAttributes = {};
               functionAttributes.name = f.name;
               parentChildStack.push(functionAttributes);
@@ -111,11 +111,12 @@
              if (parentChildStack.length == 1){
                parentChildStack.pop();
              }
-             else if (parentChildStack.length < 3){
+             else if (parentChildStack.length >= 2){
                //checkHoistability(parentChildStack)
+               //console.log ("pop")
                parentChildStack.pop();
              }
-            //console.log (parentChildStack)
+            // /console.log (parentChildStack)
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
 
