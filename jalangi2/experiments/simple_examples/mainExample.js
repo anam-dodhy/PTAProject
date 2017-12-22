@@ -1,5 +1,5 @@
 var isHoisted = require("./example_m.js");
-isHoisted.outerFun(1 ,2 ,3);
+isHoisted.checkHoistability();
 
 /*var hoistedFuncDecExample = require("./hoistedFuncDecExample.js")
 hoistedFuncDecExample.functionParent("hello");*/
