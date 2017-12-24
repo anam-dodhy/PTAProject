@@ -81,12 +81,19 @@
           console.log ("------------before variable write-----------------------");
           //console.log("name:", name);
           //console.log("Val",val);
+          // Check if eval contains a function nested inside another function
+          // Indirect eval is evaluated in the scope where it is assigned than where it is defined. So the function can be hoisted
+          if(val === eval) {
+            console.log("Eval detected!!!");
+            //setEvalVar(name);
+          }
           checkAndPushVariable(name, val);
           return {result: val};
         };
 
       function checkAndPushVariable(name, val){
         console.log ("------------checkAndPushVariable-----------------------");
+        console.log(name);
         if (!checkValidityOfVariable(val, name)){
           if (parentChildStack.length !=0){
             pushVariable(name, false, parentChildStack)
@@ -96,6 +103,7 @@
 
       function pushVariable (name, isArgument, parentChildStack){
         console.log ("------------pushVariable-----------------------");
+        console.log(name);
         //console.log("pushVariable name:", name);
         //console.log("pushVariable isArgument",isArgument);
         var variable =  {
@@ -103,15 +111,17 @@
                           isArgument: isArgument
                         };
         var func = parentChildStack.pop(); // take the last function
+        //console.log("parentChildStack",parentChildStack);
         if (!checkVariableExistance(func.variables, variable)){
           func.variables.push(variable); //add varibale info to the popped function
         }
         parentChildStack.push(func); //push the function back on the stack
+        //console.log("parentChildStack",parentChildStack);
       }
 
       function checkValidityOfVariable(val, name){
         console.log ("------------checkValidityOfVariable-----------------------");
-        //console.log("checkValidityOfVariable name:", name);
+        console.log("name:", name);
         //console.log("checkValidityOfVariable val",val);
         if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
           return true;
@@ -151,7 +161,7 @@
               functionAttributes.name = f.name;
               parentChildStack.push(functionAttributes);
             }
-            else{
+            else{ // Check if the function is nested
               //checkHoistability(parentChildStack)
               //parentChildStack.shift(); no need to shift as we need to keep track of the parentFunctions
               functionAttributes.name = f.name;
@@ -176,46 +186,102 @@
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
           console.log ("------------ when the execution of a function body completes-----------------------");
-             if (parentChildStack.length == 1){
-               parentChildStack.pop();
-             }
-             else if (parentChildStack.length >= 2){
-               console.log ("+++++++++++++++++++++++++++++++++++++++++")
-               console.log ("-------ORG STACK---")
-               console.log (parentChildStack)
+             if (parentChildStack.length <= 1){
+               //var nested = false;
                var poppedFunction = parentChildStack.pop();
-               checkFunctionHoistability(poppedFunction)
+               //checkFunctionHoistability(poppedFunction)
+             }
+             else if (parentChildStack.length >= 2){ // Check if the function is nested
+               console.log ("+++++++++++++++++++++++++++++++++++++++++");
+               console.log ("-------ORG STACK---");
+               console.log (parentChildStack);
+               var nested = true;
+               var poppedFunction = parentChildStack.pop();
+               checkFunctionHoistability(poppedFunction, nested)
              }
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
 
-        function checkFunctionHoistability(poppedFunction){
-          var parent = parentChildStack.pop();
-          var found = false;
-          console.log ("-------Parent--" + parent.name + "---")
-          console.log (parent.variables)
-          console.log ("-------Child--" + poppedFunction.name + "---")
-          console.log (poppedFunction.variables)
-          for (var i=0; i < parent.variables.length; i++) {
-            for (var j =0; j < poppedFunction.variables.length; j++){
-              if (parent.variables[i].name === poppedFunction.variables[j].name) {
-                  console.log (poppedFunction.name + " --- can not be hoisted");
-                  found = true
-                  //push the parent back on top of the stack
-                  break;
+        function checkFunctionHoistability(childFunc, nested){
+          if(nested){
+            var parentFunc = parentChildStack.pop();
+            var found = false;
+            console.log ("-------Parent--" + parentFunc.name + "---")
+            console.log (parentFunc.variables)
+            console.log ("-------Child--" + childFunc.name + "---")
+            console.log (childFunc.variables)
+            for (var i=0; i < parentFunc.variables.length; i++) {
+              for (var j =0; j < childFunc.variables.length; j++){
+                console.log("parentFunc.variables[i].name",parentFunc.variables[i].name);
+                console.log("childFunc.variables[j].name",childFunc.variables[j].name);
+                if (parentFunc.variables[i].name === childFunc.variables[j].name) {
+                    console.log (childFunc.name + " --- is nested but can not be hoisted");
+                    found = true
+                    //push the parent back on top of the stack
+                    break;
+                }
+              }
+              if (found == true){
+                break;
               }
             }
-            if (found == true){
-              break;
+            parentChildStack.push(parentFunc);
+            if (found == false){
+              console.log (childFunc.name + " --- is nested and can be hoisted. GREAT!!");
             }
           }
-          parentChildStack.push(parent);
-          if (found == false){
-            console.log (poppedFunction.name + " --- can be hoisted. GREAT!!");
+          else{
+            console.log("Not nested");
           }
-
         }
     }
 
     sandbox.analysis = new MyAnalysis();
 })(J$);
+
+/* Can be used to check recursive function - Chaitra
+_return(iid, val){Object|undefined}
+analysisCallbackTemplate.js, line 387
+This callback is called before a value is returned from a function using the return keyword.
+Name	Type	Description
+iid	number	Static unique instruction identifier of this callback
+val	*	Value to be returned
+Returns:
+Type	Description
+Object | undefined	- If an object is returned, the value to be returned is replaced with the value stored in the result property of the object.
+*/
+
+/* Can be used for eval - Chaitra
+instrumentCode(iid, newCode, newAst, isDirect){Object|undefined}
+analysisCallbackTemplate.js, line 585
+This callback is called after a string passed as an argument to eval or Function is instrumented.
+Name	Type	Description
+iid	number	Static unique instruction identifier of this callback
+newCode	*	Instrumented code
+newAst	Object	The AST of the instrumented code
+isDirect	boolean	true if this is a direct call to eval
+Returns:
+Type	Description
+Object | undefined	- If an object is returned, the instrumented code is replaced with the value stored in the result property of the object.
+*/
+
+/* Can be used for eval - Chaitra
+instrumentCodePre(iid, code, isDirect){Object}
+analysisCallbackTemplate.js, line 571
+This callback is called before a string passed as an argument to eval or Function is instrumented.
+Name	Type	Description
+iid	number	Static unique instruction identifier of this callback
+code	*	Code that is going to get instrumented
+isDirect	boolean	true if this is a direct call to eval
+Returns:
+Type	Description
+Object	- If an object is returned and the skip property is true, then the instrumentation of code is skipped. Original code is replaced with that from the returned object if an object is returned.
+*/
+
+/* We may have to use it in our analysis since we use direct.js for analysis - Chaitra
+onReady(cb)
+analysisCallbackTemplate.js, line 637
+onReady is useful if your analysis is running on node.js (i.e., via the direct.js or jalangi.js commands) and needs to complete some asynchronous initialization before the instrumented program starts. In such a case, once the initialization is complete, invoke the cb function to start execution of the instrumented program. Note that this callback is not useful in the browser, as Jalangi has no control over when the instrumented program runs there.
+Name	Type	Description
+cb
+*/

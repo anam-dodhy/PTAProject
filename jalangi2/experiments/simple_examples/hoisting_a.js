@@ -7,6 +7,6 @@ function checkHoistability() {
 
 checkHoistability();
 
-module.exports = {
+/*module.exports = {
     checkHoistability: checkHoistability
-}
+}*/
