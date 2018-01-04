@@ -194,13 +194,44 @@
              else if (parentChildStack.length >= 2){ // Check if the function is nested
                console.log ("+++++++++++++++++++++++++++++++++++++++++");
                console.log ("-------ORG STACK---");
-               console.log (parentChildStack);
+               //console.log (parentChildStack);
+
+               // Check for recursive function
+               var funcNameArr = parentChildStack.map(function(a) {return a.name;});
+               var funcNameArrSlice = funcNameArr.slice(1, funcNameArr.length);
+               //console.log(funcNameArr);
+               isRecursive = checkFunctionRecursive(funcNameArr, funcNameArrSlice);
+
+               // check if nested function hoisted
                var nested = true;
                var poppedFunction = parentChildStack.pop();
-               checkFunctionHoistability(poppedFunction, nested)
+               isHoisted = checkFunctionHoistability(poppedFunction, nested)
+               if(isHoisted == true){
+                 //console.log (childFunc.name + " --- is nested but can not be hoisted");
+                 console.log("Cannot hoist");
+               }
+               else{
+                 //console.log (childFunc.name + " --- is nested and can be hoisted. GREAT!!");
+                 console.log("Can hoist");
+               }
              }
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
+
+        function checkFunctionRecursive(arrayOfFuncNames, sliceOfFuncNameArr){
+           recursive = 0;
+           for(i = 0; i < arrayOfFuncNames.length; i++){
+            for(j = 1; j < sliceOfFuncNameArr.length; j++){
+              if(arrayOfFuncNames[i] === sliceOfFuncNameArr[j]){
+                recursive = 1;
+              }
+            }
+           }
+
+          if(recursive == 1){
+            console.log("This is a recursive function");
+          }
+        }
 
         function checkFunctionHoistability(childFunc, nested){
           if(nested){
@@ -212,22 +243,22 @@
             console.log (childFunc.variables)
             for (var i=0; i < parentFunc.variables.length; i++) {
               for (var j =0; j < childFunc.variables.length; j++){
-                console.log("parentFunc.variables[i].name",parentFunc.variables[i].name);
-                console.log("childFunc.variables[j].name",childFunc.variables[j].name);
                 if (parentFunc.variables[i].name === childFunc.variables[j].name) {
                     console.log (childFunc.name + " --- is nested but can not be hoisted");
-                    found = true
+                    found = true;
+                    return found;
                     //push the parent back on top of the stack
-                    break;
+                    //break;
                 }
               }
-              if (found == true){
+              /*if (found == true){
                 break;
-              }
+              }*/
             }
             parentChildStack.push(parentFunc);
             if (found == false){
               console.log (childFunc.name + " --- is nested and can be hoisted. GREAT!!");
+              return found;
             }
           }
           else{
