@@ -6,7 +6,8 @@ function outerFun (x,y,z){
    }
    return x+y+z+ innerFunc (2);
 }
-outerFun (1 ,2 ,3);
+val = outerFun (1 ,2 ,3);
+console.log(val);
 
 /*module.exports = {
     outerFun: outerFun

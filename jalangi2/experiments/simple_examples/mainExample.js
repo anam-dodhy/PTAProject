@@ -1,5 +1,5 @@
-var isHoisted = require("./example_m.js");
-isHoisted.checkHoistability();
+var isHoisted = require("./hoistedFunExpDecExample.js");
+isHoisted.functionOne(1);
 
 /*var hoistedFuncDecExample = require("./hoistedFuncDecExample.js")
 hoistedFuncDecExample.functionParent("hello");*/
