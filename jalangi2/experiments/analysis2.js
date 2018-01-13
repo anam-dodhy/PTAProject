@@ -35,9 +35,7 @@
          *
          */
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-          console.log ("------------declare-----------------------");
-        //  console.log("name:", name);
-        //  console.log("Val",val);
+          //console.log ("------------declare-----------------------");
             if (!checkValidityOfVariable(val, name)){
               if (parentChildStack.length !=0 && isArgument == true){ //only for variables in the argument of a function
                 pushVariable(name, isArgument, parentChildStack)
@@ -58,9 +56,7 @@
          * replaced with the value stored in the <tt>result</tt> property of the object.
          */
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
-          console.log ("------------after variable read-----------------------");
-          //console.log("name:", name);
-          //console.log("Val",val);
+          //console.log ("------------after variable read-----------------------");
           checkAndPushVariable(name, val);
           return {result: val};
         };
@@ -78,15 +74,19 @@
          * replaced with the value stored in the <tt>result</tt> property of the object.
          */
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
-          console.log ("------------before variable write-----------------------");
-          //console.log("name:", name);
-          //console.log("Val",val);
-          checkAndPushVariable(name, val);
-          return {result: val};
+          //console.log ("------------before variable write-----------------------");
+          if(val === eval) {
+            console.log("Indirect eval detected!!!",name, val );
+            return {result: val};
+          }
+          else{
+            checkAndPushVariable(name, val);
+            return {result: val};
+          }
         };
 
       function checkAndPushVariable(name, val){
-        console.log ("------------checkAndPushVariable-----------------------");
+        //console.log ("------------checkAndPushVariable-----------------------");
         if (!checkValidityOfVariable(val, name)){
           if (parentChildStack.length !=0){
             pushVariable(name, false, parentChildStack)
@@ -95,9 +95,7 @@
       }
 
       function pushVariable (name, isArgument, parentChildStack){
-        console.log ("------------pushVariable-----------------------");
-        //console.log("pushVariable name:", name);
-        //console.log("pushVariable isArgument",isArgument);
+        //console.log ("------------pushVariable-----------------------");
         var variable =  {
                           name: name,
                           isArgument: isArgument
@@ -110,9 +108,7 @@
       }
 
       function checkValidityOfVariable(val, name){
-        console.log ("------------checkValidityOfVariable-----------------------");
-        //console.log("checkValidityOfVariable name:", name);
-        //console.log("checkValidityOfVariable val",val);
+        //console.log ("------------checkValidityOfVariable-----------------------");
         if (val!=undefined && (val.toString().indexOf("function") > -1 || name.toString().indexOf("arguments") > -1)){ // if the function is being declared then we need to ignore it
           return true;
         }
@@ -120,9 +116,7 @@
       }
 
       function checkVariableExistance(variables, variable){
-        console.log ("------------checkVariableExistance-----------------------");
-        //console.log("checkVariableExistance variables:", variables);
-        //console.log("checkVariableExistance variable",variable);
+        //console.log ("------------checkVariableExistance-----------------------");
         for (var i=0; i < variables.length; i++) {
           if (variables[i].name === variable.name) {
               return true;
@@ -141,22 +135,13 @@
          * @returns {undefined} - Any return value is ignored
          */
         this.functionEnter = function (iid, f, dis, args) {
-          console.log ("------------ before the execution of a function body starts-----------------------");
-             var functionAttributes = {
-               name: "",
-               variables:  []
-             };
-
-            if (parentChildStack.length <= 1){
-              functionAttributes.name = f.name;
-              parentChildStack.push(functionAttributes);
-            }
-            else{
-              //checkHoistability(parentChildStack)
-              //parentChildStack.shift(); no need to shift as we need to keep track of the parentFunctions
-              functionAttributes.name = f.name;
-              parentChildStack.push(functionAttributes);
-            }
+          //console.log ("------------ before the execution of a function body starts-----------------------");
+            var functionAttributes = {
+              name: "",
+              variables:  []
+            };
+            functionAttributes.name = f.name;
+            parentChildStack.push(functionAttributes);
         };
 
         /**
@@ -175,45 +160,48 @@
          * symbolic execution.
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
-          console.log ("------------ when the execution of a function body completes-----------------------");
+          //console.log ("------------ when the execution of a function body completes-----------------------");
              if (parentChildStack.length == 1){
                parentChildStack.pop();
              }
              else if (parentChildStack.length >= 2){
-               console.log ("+++++++++++++++++++++++++++++++++++++++++")
-               console.log ("-------ORG STACK---")
-               console.log (parentChildStack)
+               console.log ("+++++++++++++++++++++++++++++++++++++++++");
+               console.log ("-------ORG STACK---");
+               //console.log (parentChildStack);
                var poppedFunction = parentChildStack.pop();
                checkFunctionHoistability(poppedFunction)
              }
             return {returnVal: returnVal, wrappedExceptionVal: wrappedExceptionVal, isBacktrack: false};
         };
 
-        function checkFunctionHoistability(poppedFunction){
-          var parent = parentChildStack.pop();
+        function checkFunctionHoistability(childFunc){
+          var parentFunc = parentChildStack.pop();
           var found = false;
-          console.log ("-------Parent--" + parent.name + "---")
-          console.log (parent.variables)
-          console.log ("-------Child--" + poppedFunction.name + "---")
-          console.log (poppedFunction.variables)
-          for (var i=0; i < parent.variables.length; i++) {
-            for (var j =0; j < poppedFunction.variables.length; j++){
-              if (parent.variables[i].name === poppedFunction.variables[j].name) {
-                  console.log (poppedFunction.name + " --- can not be hoisted");
-                  found = true
-                  //push the parent back on top of the stack
-                  break;
+          /*console.log ("-------Parent--" + parentFunc.name + "---")
+          console.log (parentFunc.variables)
+          console.log ("-------Child--" + childFunc.name + "---")
+          console.log (childFunc.variables) */
+          if(parentFunc.name === childFunc.name){
+            console.log(parentFunc.name + " function is Recursive.");
+          } else {
+            for (var i=0; i < parentFunc.variables.length; i++) {
+              for (var j =0; j < childFunc.variables.length; j++){
+                if (parentFunc.variables[i].name === childFunc.variables[j].name) {
+                    console.log (childFunc.name + " is Nested but CANNOT be Hoisted");
+                    found = true;
+                    //push the parent back on top of the stack
+                    break;
+                }
+              }
+              if (found == true){
+                break;
               }
             }
-            if (found == true){
-              break;
+            parentChildStack.push(parentFunc);
+            if (found == false){
+              console.log (childFunc.name + " is Nested with " + parentFunc.name + " and Can Be Hoisted. GREAT!!");
             }
           }
-          parentChildStack.push(parent);
-          if (found == false){
-            console.log (poppedFunction.name + " --- can be hoisted. GREAT!!");
-          }
-
         }
     }
 
