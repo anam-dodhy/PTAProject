@@ -198,7 +198,6 @@
                 break;
               }
             }
-			parentFunc.childNames.push(childFunc.name) //new
             parentChildStack.push(parentFunc);
             if (found == false){
               console.log (childFunc.name + " is Nested with " + parentFunc.name + " and Can Be Hoisted. GREAT!!");
