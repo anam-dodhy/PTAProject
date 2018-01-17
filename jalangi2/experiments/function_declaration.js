@@ -1,22 +1,25 @@
+function functionChild4(){
+	
+}
+
 function functionParent(a) {
   var b=1;
-
-  function functionChild(a) {
-    console.log(a + "Child");
+  
+  function functionChild(a) { //not hoistable
     return a + "Child";
   }
 
-  function functionChild3() {
+  
+  function functionChild3() { //not hoistable
     b = b + "CHild3";
-    console.log("b", b);
     function functionChild4(){
       a = a + "Child4";
-      console.log("a", a);
     }
     return functionChild4()
   }
 
  functionChild();
+ functionChild4();
  return functionChild3();
 }
 
