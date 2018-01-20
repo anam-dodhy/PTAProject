@@ -15,3 +15,6 @@ function_declaration.functionParent("hello");
 
 //var hoistedFunExpDecExample = require("./hoistedFunExpDecExample.js")
 //hoistedFunExpDecExample.functionOne("hello");
+
+//var eval_example_2 = require("./indirect_eval_example2.js")
+//eval_example_2.parent();
