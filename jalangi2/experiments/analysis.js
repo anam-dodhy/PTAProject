@@ -174,7 +174,7 @@ cb*/
         function checkHoistabilityWithParentSiblings(node){
           if(node.children && node.children.length > 0) {
               node.children.forEach(function(child) {
-                  if (child.parent.parent && child.isHoistableWithParent == true){ 
+                  if (child.parent.parent && child.isHoistableWithParent == true){
                     checkHoistabilityOfNode(child, child.parent.parent)
                   }
                   printNodeResult(child)
@@ -270,7 +270,6 @@ cb*/
                 console.log("Switching currentNode from" + currentNode.name + " to " + newNode.name)
                 currentNode = newNode;
             }
-            console.log (roots)
         };
 
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
