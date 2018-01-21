@@ -166,7 +166,7 @@ cb*/
 
           }
           else{
-            result = node.name + " is NOT hoistable";
+            result = node.name + " under "+  node.parent.name +" is NOT hoistable";
           }
           console.log(result)
         }
@@ -280,10 +280,9 @@ cb*/
             if (currentNode != null && currentNode.parent != null) {
                 currentNode = currentNode.parent;
             }else if (currentNode.parent == null){ //the whole tree is built and currentNode is the rootNode
+              console.log("\n")
               console.log("+++++RESULT+++++")
               checkHoistabilityWithParentSiblings(currentNode)
-
-              //currentNode.traverseDF();
             }
             console.log("Current node on exit: "+currentNode.name)
             console.log("\n");
