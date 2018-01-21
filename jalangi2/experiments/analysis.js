@@ -6,7 +6,7 @@ cb*/
 
 (function (sandbox) {
     
-    var _ = require('lodash/core');
+
     var util = require('util');
     function MyAnalysis() {
 
