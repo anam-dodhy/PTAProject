@@ -174,7 +174,7 @@ cb*/
         function checkHoistabilityWithParentSiblings(node){
           if(node.children && node.children.length > 0) {
               node.children.forEach(function(child) {
-                  if (child.parent.parent && child.isHoistableWithParent == true){ //only check
+                  if (child.parent.parent && child.isHoistableWithParent == true){ 
                     checkHoistabilityOfNode(child, child.parent.parent)
                   }
                   printNodeResult(child)
@@ -204,7 +204,7 @@ cb*/
             //isHoistableWithParentSiblings = node.compareHoistabilityWithSiblings();
             //console.log("isHoistableWithParentSiblings? ",isHoistableWithParentSiblings);
             node.isHoistableWithParent = node.compareHoistabilityWithParent();
-            console.log("isHoistableWithParent? ",node.isHoistableWithParent);
+            console.log(node.name +  " isHoistableWithParent? ",node.isHoistableWithParent);
         }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
@@ -243,7 +243,8 @@ cb*/
             // Check if this and child are same. Then it is a recursive call. Don't add child
             //console.log("this: ", util.inspect(this))
             //console.log("child: ", util.inspect(child))
-            if(this.funcBody===child.funcBody && this.name.localeCompare(child.name) == 0){
+            if((this.funcBody===child.funcBody && this.name.localeCompare(child.name) == 0) && this.name != "anonymous" && child.name != "anonymous"){
+              // if the function name is anonymous then it is part of un-named function expression and we need to add that to our stack
                 console.log(child.name + " is a recursive function")
             } else {
                 child.parent = this; // newNode.parent = currentNode
@@ -268,24 +269,25 @@ cb*/
                 currentNode.addChild(newNode);
                 console.log("Switching currentNode from" + currentNode.name + " to " + newNode.name)
                 currentNode = newNode;
-
-
             }
+            console.log (roots)
         };
 
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
             console.log("----------on function exit-------------");
             console.log("Current node : "+currentNode.name)
+
             checkHoistabilityWithParent(currentNode);
             if (currentNode != null && currentNode.parent != null) {
                 currentNode = currentNode.parent;
+                console.log("Current node on exit: "+currentNode.name)
+                console.log("\n");
             }else if (currentNode.parent == null){ //the whole tree is built and currentNode is the rootNode
               console.log("\n")
               console.log("+++++RESULT+++++")
               checkHoistabilityWithParentSiblings(currentNode)
             }
-            console.log("Current node on exit: "+currentNode.name)
-            console.log("\n");
+
 
         };
     }
