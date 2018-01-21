@@ -5,16 +5,13 @@ Name	Type	Description
 cb*/
 
 (function (sandbox) {
-    var branches = {};
-
+    
+    var _ = require('lodash/core');
+    var util = require('util');
     function MyAnalysis() {
 
         var roots = [];
-        //var printed = false;
         var currentNode = null;
-        //var exceptionAlreadyThrown = false;
-
-
         /**
          * Tree class for saving callstack
          * @param data function to save
@@ -197,9 +194,15 @@ cb*/
 
         TreeNode.prototype.addChild = function (child) {
             console.log(" ADDING CHILD " + child.name  + " to PARENT " + this.name)
-            child.parent = this; // newNode.parent = currentNode
-            this.children.push(child); // currentNode.children.push(newNode)
-            
+            // Check if this and child are same. Then it is a recursive call. Don't add child
+            //console.log("this: ", util.inspect(this))
+            //console.log("child: ", util.inspect(child))
+            if(this.funcBody===child.funcBody && this.name.localeCompare(child.name) == 0){
+                console.log(child.name + " is a recursive function")
+            } else {
+                child.parent = this; // newNode.parent = currentNode
+                this.children.push(child); // currentNode.children.push(newNode)
+            }
         };
 
         this.functionEnter = function (iid, f, dis, args) {
