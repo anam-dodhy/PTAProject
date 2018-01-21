@@ -1,26 +1,26 @@
-function functionChild4(){
-	
-}
+/*function functionChild3(){
+  console.log("globalChild3")
+}*/
 
 function functionParent(a) {
-  var b=1;
-  
-  function functionChild(a) { //not hoistable
-    return a + "Child";
+  var b = 1;
+  function functionChild1(a) { //not hoistable
+    return a + "Child1";
   }
-
-  
-  function functionChild3() { //not hoistable
-    b = b + "CHild3";
-    function functionChild4(){
-      a = a + "Child4";
+  function functionChild2() { //not hoistable
+    b = b + "CHild2";
+    console.log("***In functionChild2: ",b);
+    function functionChild3(){ // not hoistable
+      c = "localChild3 ";
     }
-    return functionChild4()
+    return functionChild3()
   }
-
- functionChild();
- functionChild4();
- return functionChild3();
+  function functionChild3(){
+    console.log("Another Child3")
+  }
+ functionChild1();
+ functionChild3();
+ return functionChild2();
 }
 
 module.exports = {

@@ -1,3 +1,9 @@
+/*onReady(cb)
+/Users/ksen/Dropbox/jalangi2/src/js/runtime/analysisCallbackTemplate.js, line 632
+onReady is useful if your analysis is running on node.js (i.e., via the direct.js or jalangi.js commands) and needs to complete some asynchronous initialization before the instrumented program starts. In such a case, once the initialization is complete, invoke the cb function to start execution of the instrumented program. Note that this callback is not useful in the browser, as Jalangi has no control over when the instrumented program runs there.
+Name	Type	Description
+cb*/
+
 (function (sandbox) {
     var branches = {};
 
@@ -86,7 +92,7 @@
             console.log("Added variable to: ", this.name, variable.name, variable.isArgument)
         };        
 
-        function checkValidityOfVariable(_name, _val, _isArgument, _argumentIndex){
+        function checkValidityOfVariable(_name, _val){
             //console.log ("------------checkValidityOfVariable-----------------------");
             //console.log("name: "+_name+" isArgument: "+_isArgument+" argumentIndex: "+_argumentIndex)
             if (_val != undefined){
@@ -161,11 +167,16 @@
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
             //console.log ("------------declare-----------------------");
             //console.log("name: "+name+" isArgument: "+isArgument)
-            if(!checkValidityOfVariable(name, val, isArgument, argumentIndex ) && (currentNode)){
+            if(!checkValidityOfVariable(name, val ) && (currentNode)){
                 currentNode.addVariable(name, isArgument);
             }
             return {result: val};
         };
+
+        this.read = function (iid, name, val, isGlobal, isScriptLocal) {
+            //console.log ("------------after variable read-----------------------");
+            return {result: val};
+          };
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             //console.log ("------------before variable write-----------------------");
@@ -222,7 +233,13 @@
 
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
             console.log("----------on function exit-------------");
-            console.log("Return value: ", returnVal);
+            if (currentNode != null && currentNode.parent != null) {
+                console.log("in if")
+                currentNode = currentNode.parent;
+            }
+            console.log("Current node: "+currentNode.name)
+            checkHoistability(currentNode);
+            console.log("\n");
         };
     }
 
