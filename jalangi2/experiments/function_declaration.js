@@ -2,20 +2,19 @@
   console.log("globalChild3")
 }*/
 
-function functionParent(a) {
+function functionParent(a) { // hoistable
   var b = 1;
   function functionChild1(a) { //not hoistable
     return a + "Child1";
   }
   function functionChild2() { //not hoistable
-    b = b + "CHild2";
-    console.log("***In functionChild2: ",b);
+    var b = b + "CHild2";   // var should be there for jalangi to detect
     function functionChild3(){ // not hoistable
-      c = "localChild3 ";
+     var c = "localChild3 ";
     }
     return functionChild3()
   }
-  function functionChild3(){
+  function functionChild3(){ // hoistable
     console.log("Another Child3")
   }
  functionChild1();

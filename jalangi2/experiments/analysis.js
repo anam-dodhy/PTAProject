@@ -89,12 +89,12 @@ cb*/
                 isArgument: _isArgument
             }
             this.variables.push(variable);
-            console.log("Added variable to: ", this.name, variable.name, variable.isArgument)
+            console.log("Added variable " +variable.name+" to: "+ this.name+" argument "+ variable.isArgument)
         };        
 
         function checkValidityOfVariable(_name, _val){
             //console.log ("------------checkValidityOfVariable-----------------------");
-            //console.log("name: "+_name+" isArgument: "+_isArgument+" argumentIndex: "+_argumentIndex)
+            //console.log("name: "+_name)
             if (_val != undefined){
                 if(_val.toString().indexOf("function") > -1 || _name.toString().indexOf("arguments") > -1){ // if the function is being declared then we need to ignore it
                     return true;
@@ -119,10 +119,9 @@ cb*/
             if(this.parent) {
                 console.log("In if comparehoistability")
                 var childVars = getVariableNames(this.variables); // [a,b]
-                var parentVars = getVariableNames(this.variables);
+                var parentVars = getVariableNames(this.parent.variables);
                 console.log("ChildVars: "+childVars+" ParentVars: "+parentVars)
                 childVars.forEach(function(childVar){
-                    console.log("child var "+childVar)
                     if(parentVars.indexOf(childVar)>-1) isHoistable = false; 
                 })
             } else {
@@ -143,14 +142,15 @@ cb*/
 
         TreeNode.prototype.compareHoistabilityWithSiblings = function() {
             var isHoistable = true;
-            if(this.parent) {
-                var siblings = getChildNamesFromNode(this.parent); // Might have to remove this as it could also be part of siblings
-                var children = getChildNamesFromNode(this);
+            if(this.parent && this.parent.parent) {
+                var parentsSiblings = getChildNamesFromNode(this.parent.parent); // Might have to remove this as it could also be part of siblings
+                var siblings = getChildNamesFromNode(this.parent);
+                console.log("siblings: "+siblings+" parentsSiblings: "+parentsSiblings)
                 siblings.forEach(function(sibling){
-                    if(children.indexOf(sibling)>-1) isHoistable = false; 
+                    if(parentsSiblings.indexOf(sibling)>-1) isHoistable = false; 
                 })
             } else {
-                console.log('No Parent node present');
+                console.log('No Grandparent node present');
             }
             return isHoistable;
         }
@@ -186,14 +186,7 @@ cb*/
                 return {result: val};
             }
             else{
-                if(currentNode){
-                    if (currentNode != null && currentNode.parent != null) {
-                        console.log("in if")
-                        currentNode = currentNode.parent;
-                    }
-                    checkHoistability(currentNode);
                 return {result: val};
-                }
             }
         }
 
@@ -210,7 +203,9 @@ cb*/
         };
 
         this.functionEnter = function (iid, f, dis, args) {
-            console.log("\nTHIS FUNCTION CALLED FOR: " + f.name)
+            var curName = "NOPARENT";
+            if(currentNode) curName = currentNode.name;
+            console.log("\nTHIS FUNCTION CALLED FOR: " + f.name + " and the currentNode is " + curName)
             var newNode = null;
             newNode = new TreeNode(f, currentNode, false, iid);
             //console.log("new node", newNode.name)
@@ -222,23 +217,21 @@ cb*/
             } else {
                 //currentNode is not null so add as child to currentNode
                 currentNode.addChild(newNode);
-                console.log(
-                    "current node : " + currentNode.name +
-                    //"\ncurrent node parent: " + currentNode.name +
-                    "\ncurrent node child: " + currentNode.children[currentNode.children.length - 1].name
-                )
+                console.log("Switching currentNode from" + currentNode.name + " to " + newNode.name)
                 currentNode = newNode;
+                
+                
             }
         };
 
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
             console.log("----------on function exit-------------");
+            console.log("Current node : "+currentNode.name)
+            checkHoistability(currentNode);
             if (currentNode != null && currentNode.parent != null) {
-                console.log("in if")
                 currentNode = currentNode.parent;
             }
-            console.log("Current node: "+currentNode.name)
-            checkHoistability(currentNode);
+            console.log("Current node on exit: "+currentNode.name)
             console.log("\n");
         };
     }
