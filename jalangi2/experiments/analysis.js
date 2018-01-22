@@ -6,7 +6,6 @@ cb*/
 
 (function (sandbox) {
 
-
     var util = require('util');
     function MyAnalysis() {
 
@@ -86,8 +85,16 @@ cb*/
                 name: _name,
                 isArgument: _isArgument
             }
-            this.variables.push(variable);
-            console.log("Added variable " +variable.name+" to: "+ this.name+" argument "+ variable.isArgument)
+            var variableAlreadyExists = false;
+            this.variables.forEach(function(v) {
+                if (v.name == variable.name){
+                  variableAlreadyExists = true;
+                }
+            });
+            if (!variableAlreadyExists){
+              this.variables.push(variable);
+              console.log("Added variable " +variable.name+" to: "+ this.name+" argument "+ variable.isArgument)
+            }
         };
 
         function checkValidityOfVariable(_name, _val){
@@ -218,6 +225,9 @@ cb*/
 
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
             //console.log ("------------after variable read-----------------------");
+            if(!checkValidityOfVariable(name, val ) && (currentNode)){
+                currentNode.addVariable(name, false);
+            }
             return {result: val};
           };
 
@@ -226,11 +236,11 @@ cb*/
             //console.log("name: "+name+" val: "+val+" iid: "+iid+" isGlobal: "+isGlobal+" isScriptLocal: "+isScriptLocal+" lhs: "+lhs)
             if(val === eval) {
                 console.log("Indirect eval detected!!!",name, val );
-                return {result: val};
             }
-            else{
-                return {result: val};
+            else if(!checkValidityOfVariable(name, val ) && (currentNode)){
+                  currentNode.addVariable(name, false);
             }
+            return {result: val};
         }
 
         // can be used to check if a function is constructor or method
