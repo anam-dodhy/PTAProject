@@ -17,9 +17,8 @@ cb*/
          * @param parent
          * @param iid
          */
-        function TreeNode(data, parent, iid) {
+        function TreeNode(data, parent) {
             this.data = data;
-            this.iid = iid;
             this.parent = parent;
             this.children = [];
             this.variables = [];
@@ -30,7 +29,7 @@ cb*/
             if (data.name) {
                 this.name = data.name;
             } else {
-                this.name = "anonymous";
+                this.name = "anonymous"; // in case of function expressions which have no function name
             }
         }
 
@@ -77,6 +76,21 @@ cb*/
             return isHoistable;
         }
 
+        /**
+         * function that adds a child to a node
+         * @param child
+         */
+        TreeNode.prototype.addChild = function (child) {
+            console.log(" ADDING CHILD " + child.name  + " to PARENT " + this.name)
+            // Check if this and child are same. Then it is a recursive call. Don't add child
+            if((this.funcBody===child.funcBody && this.name.localeCompare(child.name) == 0) && this.name != "anonymous" && child.name != "anonymous"){
+              // if the function name is anonymous then it is part of un-named function expression and we need to add that to our stack
+                console.log(child.name + " is a recursive function")
+            } else {
+                child.parent = this; // newNode.parent = currentNode
+                this.children.push(child); // currentNode.children.push(newNode)
+            }
+        };
         /**
          * function checks the vailidty of a given variable by making sure that its not a function
          * @param _name name of the variable
@@ -217,24 +231,12 @@ cb*/
 
         };
 
-        TreeNode.prototype.addChild = function (child) {
-            console.log(" ADDING CHILD " + child.name  + " to PARENT " + this.name)
-            // Check if this and child are same. Then it is a recursive call. Don't add child
-            if((this.funcBody===child.funcBody && this.name.localeCompare(child.name) == 0) && this.name != "anonymous" && child.name != "anonymous"){
-              // if the function name is anonymous then it is part of un-named function expression and we need to add that to our stack
-                console.log(child.name + " is a recursive function")
-            } else {
-                child.parent = this; // newNode.parent = currentNode
-                this.children.push(child); // currentNode.children.push(newNode)
-            }
-        };
-
         this.functionEnter = function (iid, f, dis, args) {
             var curName = "NOPARENT";
             if(currentNode) curName = currentNode.name;
             console.log("\nTHIS FUNCTION CALLED FOR: " + f.name + " and the currentNode is " + curName)
             var newNode = null;
-            newNode = new TreeNode(f, currentNode, false, iid);
+            newNode = new TreeNode(f, currentNode, false);
 
             if (currentNode === null) {
                 currentNode = newNode;
