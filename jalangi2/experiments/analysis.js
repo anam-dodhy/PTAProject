@@ -12,7 +12,7 @@ cb*/
         var roots = [];
         var currentNode = null;
         /**
-         * Tree class for saving callstack
+         * Class of Tree to store the hierarchy of nested functions
          * @param data function to save
          * @param parent
          * @param iid
@@ -34,51 +34,11 @@ cb*/
             }
         }
 
-        TreeNode.prototype.traverseDF = function () {
-            function recurse(currentNode) {
-                for (var i = 0; i < currentNode.children.length; i++) {
-                    recurse(currentNode.children[i]);
-                }
-            }
-            recurse(this);
-        };
-
         /**
-         * Finds tree node in callstack hierarchy using DepthFirst search
-         * @param data function to find
-         * @returns {*}
+         * add function variables to a node which is representing a single function
+         * @param _name name of the variable
+         * @param _isArgument
          */
-        TreeNode.prototype.findNode = function (data) {
-            function recurse(currentNode) {
-
-                if (currentNode.data === data || currentNode.funcBody === data) {
-                    return currentNode;
-                } else {
-                    var i;
-                    var result = null;
-                    for (i = 0; result == null && i < currentNode.children.length; i++) {
-                        result = recurse(currentNode.children[i]);
-                    }
-                    return result;
-                }
-            }
-            return recurse(this);
-        };
-
-        /**
-         * Prints whole hierarchy of `tempPrintNode`
-         * @param tempPrintNode
-         */
-        function printStackTrace(tempPrintNode) {
-            while (tempPrintNode != null) {
-                var lineNo = J$.iidToLocation(J$.sid, tempPrintNode.iid).split(":")[3];
-                //var name = tempPrintNode.name == "F" ? "anonymous" : tempPrintNode.name;
-                name = tempPrintNode.name;
-                console.log("function:" + name + " OffsetNo:" + lineNo);
-                tempPrintNode = tempPrintNode.parent;
-            }
-        }
-
         TreeNode.prototype.addVariable = function (_name, _isArgument) {
             //console.log(_isArgument)
             var variable = {
@@ -97,28 +57,10 @@ cb*/
             }
         };
 
-        function checkValidityOfVariable(_name, _val){
-            //console.log ("------------checkValidityOfVariable-----------------------");
-            //console.log("name: "+_name)
-            if (_val != undefined){
-                if(_val.toString().indexOf("function") > -1 || _name.toString().indexOf("arguments") > -1){ // if the function is being declared then we need to ignore it
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-
-        }
-        function getVariableNames(variableObjects) {
-            var variableNames = [];
-            variableObjects.forEach(function(variable) {
-                variableNames.push(variable.name)
-            });
-            return variableNames;
-        }
-
-        // check if the Child function is dependent on the local variables or arguments of parent
-        // in this case the Child function is not hoistable
+        /**
+         * function checks whether the child function node is dependent on any of the parent function node variables there by checking
+         one of the conditions of hoistability
+         */
         TreeNode.prototype.compareHoistabilityWithParent = function() {
             var isHoistable = true;
             if(this.parent) {
@@ -135,6 +77,38 @@ cb*/
             return isHoistable;
         }
 
+        /**
+         * function checks the vailidty of a given variable by making sure that its not a function
+         * @param _name name of the variable
+         * @param _val
+         */
+        function checkValidityOfVariable(_name, _val){
+            if (_val != undefined){
+                if(_val.toString().indexOf("function") > -1 || _name.toString().indexOf("arguments") > -1){ // if the function is being declared then we need to ignore it
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+        }
+
+        /**
+         * function gets the list of variable names from an array of variables
+         * @param variableObjects array of variables
+         */
+        function getVariableNames(variableObjects) {
+            var variableNames = [];
+            variableObjects.forEach(function(variable) {
+                variableNames.push(variable.name)
+            });
+            return variableNames;
+        }
+
+        /**
+         * function returns the list of names of all the children of a given node
+         * @param node
+         */
         function getChildNamesFromNode(node) {
             var names = [];
             if(node.children && node.children.length > 0) {
@@ -145,21 +119,10 @@ cb*/
             return names;
         }
 
-        TreeNode.prototype.compareHoistabilityWithSiblings = function() {
-            var isHoistable = true;
-            if(this.parent && this.parent.parent) {
-                var parentsSiblings = getChildNamesFromNode(this.parent.parent); // Might have to remove this as it could also be part of siblings
-                var siblings = getChildNamesFromNode(this.parent);
-                console.log("siblings: "+siblings+" parentsSiblings: "+parentsSiblings)
-                siblings.forEach(function(sibling){
-                    if(parentsSiblings.indexOf(sibling)>-1) isHoistable = false;
-                })
-            } else {
-                console.log('No Grandparent node present');
-            }
-            return isHoistable;
-        }
-
+        /**
+         * function checks the hoistability flags of a given node and logs a string with the result
+         * @param node
+         */
         function printNodeResult(node){
           result = "";
           if (node.isHoistableWithParent == true){
@@ -178,6 +141,10 @@ cb*/
           console.log(result)
         }
 
+        /**
+         * function loops through the whole tree and checks the hoistability of each node with its parent's siblings and above
+         * @param node
+         */
         function checkHoistabilityWithParentSiblings(node){
           if(node.children && node.children.length > 0) {
               node.children.forEach(function(child) {
@@ -193,6 +160,11 @@ cb*/
           }
         }
 
+        /**
+         * function checks whether there is another function with the same definition defined anywhere in the hierarchy above the given function node
+         * @param nodeToCheck
+         * @param node
+         */
         function checkHoistabilityOfNode(nodeToCheck, node){
           if (node){
             node.children.forEach(function (child){
@@ -205,18 +177,18 @@ cb*/
           }
         }
 
+        /**
+         * function checks whether a node is dependent on it's parent by using any of the parent variables
+         * @param node
+         */
+
         function checkHoistabilityWithParent(node){
             node.isHoistableWithParent = false;
-            //var isHoistableWithParentSiblings = false;
-            //isHoistableWithParentSiblings = node.compareHoistabilityWithSiblings();
-            //console.log("isHoistableWithParentSiblings? ",isHoistableWithParentSiblings);
             node.isHoistableWithParent = node.compareHoistabilityWithParent();
             console.log(node.name +  " isHoistableWithParent? ",node.isHoistableWithParent);
         }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-            //console.log ("------------declare-----------------------");
-            //console.log("name: "+name+" isArgument: "+isArgument)
             if(!checkValidityOfVariable(name, val ) && (currentNode)){
                 currentNode.addVariable(name, isArgument);
             }
@@ -224,7 +196,6 @@ cb*/
         };
 
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
-            //console.log ("------------after variable read-----------------------");
             if(!checkValidityOfVariable(name, val ) && (currentNode)){
                 currentNode.addVariable(name, false);
             }
@@ -232,8 +203,6 @@ cb*/
           };
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
-            //console.log ("------------before variable write-----------------------");
-            //console.log("name: "+name+" val: "+val+" iid: "+iid+" isGlobal: "+isGlobal+" isScriptLocal: "+isScriptLocal+" lhs: "+lhs)
             if(val === eval) {
                 console.log("Indirect eval detected!!!",name, val );
             }
@@ -251,8 +220,6 @@ cb*/
         TreeNode.prototype.addChild = function (child) {
             console.log(" ADDING CHILD " + child.name  + " to PARENT " + this.name)
             // Check if this and child are same. Then it is a recursive call. Don't add child
-            //console.log("this: ", util.inspect(this))
-            //console.log("child: ", util.inspect(child))
             if((this.funcBody===child.funcBody && this.name.localeCompare(child.name) == 0) && this.name != "anonymous" && child.name != "anonymous"){
               // if the function name is anonymous then it is part of un-named function expression and we need to add that to our stack
                 console.log(child.name + " is a recursive function")
@@ -268,7 +235,6 @@ cb*/
             console.log("\nTHIS FUNCTION CALLED FOR: " + f.name + " and the currentNode is " + curName)
             var newNode = null;
             newNode = new TreeNode(f, currentNode, false, iid);
-            //console.log("new node", newNode.name)
 
             if (currentNode === null) {
                 currentNode = newNode;
@@ -296,8 +262,6 @@ cb*/
               console.log("+++++RESULT+++++")
               checkHoistabilityWithParentSiblings(currentNode)
             }
-
-
         };
     }
 
