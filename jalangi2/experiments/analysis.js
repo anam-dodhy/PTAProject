@@ -38,21 +38,23 @@ cb*/
          * @param _name name of the variable
          * @param _isArgument
          */
-        TreeNode.prototype.addVariable = function (_name, _isArgument) {
-            //console.log(_isArgument)
+        TreeNode.prototype.addVariable = function (_name, _isArgument, _type) {
             var variable = {
                 name: _name,
-                isArgument: _isArgument
+                isArgument: _isArgument,
+                type: _type
             }
             var variableAlreadyExists = false;
             this.variables.forEach(function(v) {
-                if (v.name == variable.name){
-                  variableAlreadyExists = true;
+                if ((v.name == variable.name) && (variable.type != "declared")){
+                    if ((v.type == "declared") || (v.type == variable.type)){
+                        variableAlreadyExists = true;
+                    }
                 }
             });
             if (!variableAlreadyExists){
               this.variables.push(variable);
-              console.log("Added variable " +variable.name+" to: "+ this.name+" argument "+ variable.isArgument)
+              console.log("Added variable " +variable.name+" to: "+ this.name+" argument "+ variable.isArgument+" type "+ variable.type)
             }
         };
 
@@ -64,8 +66,8 @@ cb*/
             var isHoistable = true;
             if(this.parent) {
                 console.log("In if comparehoistability")
-                var childVars = getVariableNames(this.variables); // [a,b]
-                var parentVars = getVariableNames(this.parent.variables);
+                var childVars = getVariableNames(this.variables, true); // [a,b]
+                var parentVars = getVariableNames(this.parent.variables, false);
                 console.log("ChildVars: "+childVars+" ParentVars: "+parentVars)
                 childVars.forEach(function(childVar){
                     if(parentVars.indexOf(childVar)>-1) isHoistable = false;
@@ -81,11 +83,11 @@ cb*/
          * @param child
          */
         TreeNode.prototype.addChild = function (child) {
-            console.log(" ADDING CHILD " + child.name  + " to PARENT " + this.name)
+            //console.log(" ADDING CHILD " + child.name  + " to PARENT " + this.name)
             // Check if this and child are same. Then it is a recursive call. Don't add child
             if((this.funcBody===child.funcBody && this.name.localeCompare(child.name) == 0) && this.name != "anonymous" && child.name != "anonymous"){
               // if the function name is anonymous then it is part of un-named function expression and we need to add that to our stack
-                console.log(child.name + " is a recursive function")
+               console.log(child.name + " is a recursive function")
             } else {
                 child.parent = this; // newNode.parent = currentNode
                 this.children.push(child); // currentNode.children.push(newNode)
@@ -97,13 +99,19 @@ cb*/
          * @param _val
          */
         function checkValidityOfVariable(_name, _val){
+          try{
             if (_val != undefined){
                 if(_val.toString().indexOf("function") > -1 || _name.toString().indexOf("arguments") > -1){ // if the function is being declared then we need to ignore it
+                    //function expression here
                     return true;
                 } else {
                     return false;
                 }
             }
+          }
+          catch(err){
+
+          }
 
         }
 
@@ -111,10 +119,15 @@ cb*/
          * function gets the list of variable names from an array of variables
          * @param variableObjects array of variables
          */
-        function getVariableNames(variableObjects) {
+        function getVariableNames(variableObjects, isChild) {
             var variableNames = [];
             variableObjects.forEach(function(variable) {
-                variableNames.push(variable.name)
+                if (isChild && variable.isDeclared){
+                    console.log("ignore child declared variables")
+                }
+                else{
+                    variableNames.push(variable.name)
+                }
             });
             return variableNames;
         }
@@ -203,25 +216,54 @@ cb*/
         }
 
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
+            //console.log("----declare---")
+                     //console.log(val)
+            //if (val != undefined && val != null){
+                console.log("----declare-xxxxxxxxxx---")
+                console.log(val)
+                //console.log("----xxxxxxxxxx---")
+             //}
+
             if(!checkValidityOfVariable(name, val ) && (currentNode)){
-                currentNode.addVariable(name, isArgument);
+             //console.log("----declare---")
+             //console.log(val)
+              currentNode.addVariable(name, isArgument, "declared");
             }
             return {result: val};
         };
 
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
+        //console.log("----read---")
+                   //console.log(val)
+             /*if (val != undefined && val != null){
+                 console.log("----read-xxxxxxxxxx---")
+                 console.log(val)
+                 console.log("----xxxxxxxxxx---")
+              }*/
             if(!checkValidityOfVariable(name, val ) && (currentNode)){
-                currentNode.addVariable(name, false);
+            //console.log("----read---")
+            //console.log(val)
+                currentNode.addVariable(name, false, "read");
             }
             return {result: val};
           };
 
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
+        //console.log("----read---")
+                                //console.log(val)
+           /* if (val != undefined && val != {}){
+                console.log("----write-xxxxxxxxxx---")
+                console.log(val)
+                console.log("----xxxxxxxxxx---")
+             }*/
+
             if(val === eval) {
                 console.log("Indirect eval detected!!!",name, val );
             }
             else if(!checkValidityOfVariable(name, val ) && (currentNode)){
-                  currentNode.addVariable(name, false);
+            //console.log("----read---")
+                        //console.log(val)
+                  currentNode.addVariable(name, false, "written");
             }
             return {result: val};
         }
@@ -234,18 +276,20 @@ cb*/
         this.functionEnter = function (iid, f, dis, args) {
             var curName = "NOPARENT";
             if(currentNode) curName = currentNode.name;
+
             console.log("\nTHIS FUNCTION CALLED FOR: " + f.name + " and the currentNode is " + curName)
             var newNode = null;
             newNode = new TreeNode(f, currentNode, false);
+            console.log("\nTHIS FUNCTION CALLED FOR: " + newNode.name + " and the currentNode is " + curName)
 
             if (currentNode === null) {
                 currentNode = newNode;
-                roots.push(newNode);
+                roots.push(newNode); //add root node
                 console.log(currentNode.name+" is not nested"); //may be hoistable
             } else {
                 //currentNode is not null so add as child to currentNode
                 currentNode.addChild(newNode);
-                console.log("Switching currentNode from" + currentNode.name + " to " + newNode.name)
+                console.log("Switching currentNode from " + currentNode.name + " to " + newNode.name)
                 currentNode = newNode;
             }
         };
@@ -256,7 +300,7 @@ cb*/
 
             checkHoistabilityWithParent(currentNode);
             if (currentNode != null && currentNode.parent != null) {
-                currentNode = currentNode.parent;
+                currentNode = currentNode.parent; //move back to the current node's parent
                 console.log("Current node on exit: "+currentNode.name)
                 console.log("\n");
             }else if (currentNode.parent == null){ //the whole tree is built and currentNode is the rootNode
