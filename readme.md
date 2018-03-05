@@ -18,6 +18,11 @@ There are sample examples for each corner case present at the following location
 - Recursive Functions:
   - jalangi2/experiments/recursion_example.js
 
-Each of the examples above are refered in the [mainExample](jalangi2/experiments/mainExample.js) file. Following are the steps that need to be performed 
+Each of the examples above are refered in the [mainExample](jalangi2/experiments/mainExample.js) file. Following are the steps that need to be performed.
+1. Open command prompt and go to the directory "jalangi2/experiments/"
+2. Then open [mainExample](jalangi2/experiments/mainExample.js) file and uncomment the example file you want to execute.
+3. Now execute the following command:
+   - node ../src/js/commands/jalangi.js --inlineIID --inlineSource --analysis analysis.js mainExample.js
+   This command will run our analysis on the example given and output the result with functions marked as hoistable and not hoistable.
 
 
