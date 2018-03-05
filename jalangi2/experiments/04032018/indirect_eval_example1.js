@@ -9,4 +9,3 @@ function func(a) {
   //}
   //return fn(2);
 }
-

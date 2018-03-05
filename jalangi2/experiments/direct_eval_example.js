@@ -1,12 +1,10 @@
-
+x = 3;
+y = 5;
 function parent() {
-  function child1(){
-    var x = 2, y = 4;
-    console.log(eval('function directEval() {console.log("In function g: ",x); return x + y; }'));  // Direct call, uses local scope, result is 6
-
-    return directEval();
-  }
-  return child1();
+  var x = 2, y = 4;
+  // Direct call, uses local scope, result is 6
+  eval('function directEval() {console.log("In function directEval: ",x); return x + y; }');
+  directEval();
 }
 
 module.exports = {

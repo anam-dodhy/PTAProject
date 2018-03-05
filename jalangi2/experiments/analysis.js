@@ -1,24 +1,22 @@
-/*onReady(cb)
-/Users/ksen/Dropbox/jalangi2/src/js/runtime/analysisCallbackTemplate.js, line 632
-onReady is useful if your analysis is running on node.js (i.e., via the direct.js or jalangi.js commands) and needs to complete some asynchronous initialization before the instrumented program starts. In such a case, once the initialization is complete, invoke the cb function to start execution of the instrumented program. Note that this callback is not useful in the browser, as Jalangi has no control over when the instrumented program runs there.
-Name	Type	Description
-cb*/
+/**
+ * Hositing Nested Functions
+ * @description An analysis using Jalangi2 to find the nested functions in Javascript which can be hoisted to the suitable scope
+ * @author Anam Dodhy and Chaitra Hegde
+ * Please uncomment the commented console.logs to see the flow of our approach
+ */
 
 (function (sandbox) {
 
-    var util = require('util');
     function MyAnalysis() {
 
         var roots = [];
         var currentNode = null;
         /**
-         * Class of Tree to store the hierarchy of nested functions
-         * @param data function to save
-         * @param parent
-         * @param iid
+         * A Tree structure to store the hierarchy of nested functions
+         * @param data function details to add to the tree node
+         * @param parent parent of the node
          */
         function TreeNode(data, parent) {
-            this.data = data;
             this.parent = parent;
             this.children = [];
             this.variables = [];
@@ -29,101 +27,61 @@ cb*/
             if (data.name) {
                 this.name = data.name;
             } else {
-                this.name = "anonymous"; // in case of function expressions which have no function name
+                // assign "anonymous" string to the function name for anonymous functions
+                this.name = "anonymous"; 
             }
         }
 
         /**
-         * add function variables to a node which is representing a single function
-         * @param _name name of the variable
-         * @param _isArgument
-         */
-        TreeNode.prototype.addVariable = function (_name, _isArgument, _type) {
-            var variable = {
-                name: _name,
-                isArgument: _isArgument,
-                type: _type
-            }
-            var variableAlreadyExists = false;
-            this.variables.forEach(function(v) {
-                if ((v.name == variable.name) && (variable.type != "declared")){
-                    if ((v.type == "declared") || (v.type == variable.type)){
-                        variableAlreadyExists = true;
-                    }
-                }
-            });
-            if (!variableAlreadyExists){
-              this.variables.push(variable);
-              console.log("Added variable " +variable.name+" to: "+ this.name+" argument "+ variable.isArgument+" type "+ variable.type)
-            }
-        };
-
-        /**
-         * function checks whether the child function node is dependent on any of the parent function node variables there by checking
-         one of the conditions of hoistability
+         * checking the first condition for hoisting nested functions
+         * function checks whether the child function node is dependent on any of the parent function node variables
+         * these variables can be either local variable or parameters of parent node
          */
         TreeNode.prototype.compareHoistabilityWithParent = function() {
             var isHoistable = true;
             if(this.parent) {
-                console.log("In if comparehoistability")
-                var childVars = getVariableNames(this.variables, true); // [a,b]
+                var childVars = getVariableNames(this.variables, true);
                 var parentVars = getVariableNames(this.parent.variables, false);
-                console.log("ChildVars: "+childVars+" ParentVars: "+parentVars)
+
+                //console.log("Self Variables: "+childVars+" Parent Variables: "+parentVars)
                 childVars.forEach(function(childVar){
                     if(parentVars.indexOf(childVar)>-1) isHoistable = false;
                 })
             } else {
-                console.log("node has no parents");
+                //console.log("Node has no parents");
             }
             return isHoistable;
         }
 
         /**
-         * function that adds a child to a node
-         * @param child
+         * Adding a child to the current node
+         * @param child newly created node or the new function entered
          */
         TreeNode.prototype.addChild = function (child) {
-            //console.log(" ADDING CHILD " + child.name  + " to PARENT " + this.name)
-            // Check if this and child are same. Then it is a recursive call. Don't add child
-            if((this.funcBody===child.funcBody && this.name.localeCompare(child.name) == 0) && this.name != "anonymous" && child.name != "anonymous"){
-              // if the function name is anonymous then it is part of un-named function expression and we need to add that to our stack
-               console.log(child.name + " is a recursive function")
+            // check if 'this' and child are same. If yes, then it is a recursive call. Do not add child
+            if(this.funcBody === child.funcBody && this.name.localeCompare(child.name) == 0
+                // if the function name is anonymous then it is part of un-named function expression 
+                // we need to add that to our stack
+                && this.name != "anonymous" && child.name != "anonymous"){
+                
+                //console.log(child.name + " is a recursive function")
             } else {
-                child.parent = this; // newNode.parent = currentNode
-                this.children.push(child); // currentNode.children.push(newNode)
+                child.parent = this; 
+                this.children.push(child); 
             }
         };
-        /**
-         * function checks the vailidty of a given variable by making sure that its not a function
-         * @param _name name of the variable
-         * @param _val
-         */
-        function checkValidityOfVariable(_name, _val){
-          try{
-            if (_val != undefined){
-                if(_val.toString().indexOf("function") > -1 || _name.toString().indexOf("arguments") > -1){ // if the function is being declared then we need to ignore it
-                    //function expression here
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-          }
-          catch(err){
-
-          }
-
-        }
 
         /**
          * function gets the list of variable names from an array of variables
          * @param variableObjects array of variables
+         * @param isChild
          */
         function getVariableNames(variableObjects, isChild) {
             var variableNames = [];
+
             variableObjects.forEach(function(variable) {
-                if (isChild && variable.isDeclared){
-                    console.log("ignore child declared variables")
+                if (isChild && (variable.jalangiApi == "declare" || variable.jalangiApi == "write")){
+                   // ignore child declared variables
                 }
                 else{
                     variableNames.push(variable.name)
@@ -133,78 +91,119 @@ cb*/
         }
 
         /**
-         * function returns the list of names of all the children of a given node
-         * @param node
-         */
-        function getChildNamesFromNode(node) {
-            var names = [];
-            if(node.children && node.children.length > 0) {
-                node.children.forEach(function(child) {
-                    names.push(child.name)
-                });
-            }
-            return names;
-        }
-
-        /**
          * function checks the hoistability flags of a given node and logs a string with the result
          * @param node
          */
         function printNodeResult(node){
-          result = "";
-          if (node.isHoistableWithParent == true){
-            result = node.name + " under "+ node.parent.name + " is hoistable GREAT!! ";
-            if (node.nonHoistableParents.length > 0){
-              result = result + "BUT not under ";
-              node.nonHoistableParents.forEach(function (nonHoistableParent){
-                result = result + nonHoistableParent + ", ";
-              });
+            result = "";
+            if (node.isHoistableWithParent === true){
+                result = node.name + " under "+ node.parent.name + " is hoistable GREAT!! ";
+                if (node.nonHoistableParents.length > 0){
+                    result = result + "But NOT hoistable under ";
+                    node.nonHoistableParents.forEach(function (nonHoistableParent){
+                    result = result + nonHoistableParent + ", ";
+                });
+                }
+            } else {
+                result = node.name + " under "+  node.parent.name +" is NOT hoistable.";
             }
-
-          }
-          else{
-            result = node.name + " under "+  node.parent.name +" is NOT hoistable";
-          }
-          console.log(result)
+            console.log(result)
         }
 
         /**
-         * function loops through the whole tree and checks the hoistability of each node with its parent's siblings and above
-         * @param node
+         * function loops through the whole tree and checks the hoistability of each node
+         * with nodes at the parent level and above
+         * @param node it is the root node
          */
         function checkHoistabilityWithParentSiblings(node){
-          if(node.children && node.children.length > 0) {
-              node.children.forEach(function(child) {
-                  if (child.parent.parent && child.isHoistableWithParent == true){
-                    checkHoistabilityOfNode(child, child.parent.parent)
-                  }
-                  printNodeResult(child)
-                  checkHoistabilityWithParentSiblings(child)
-              });
+            if(node.children && node.children.length > 0) {
+                node.children.forEach(function(child) {
+                    if (child.parent.parent && child.isHoistableWithParent == true){
+                      checkHoistabilityOfNode(child, child.parent.parent)
+                    }
+                    printNodeResult(child)
+                    checkHoistabilityWithParentSiblings(child)
+                });
+            } else {
+              return;
+            }
           }
-          else{
-            return;
-          }
-        }
 
         /**
-         * function checks whether there is another function with the same definition defined anywhere in the hierarchy above the given function node
+         * function checks if there is any function with the same name
+         * defined or any variable with the same name as the function to be hoisted
+         * exist in the hierarchy above the given function node level
          * @param nodeToCheck
-         * @param node
+         * @param grandparentNode grandparent or parent's parent node of the nodeToCheck
          */
-        function checkHoistabilityOfNode(nodeToCheck, node){
-          if (node){
-            node.children.forEach(function (child){
-              if (nodeToCheck.name == child.name){
-                nodeToCheck.nonHoistableParents.push(node.name)
-                return
-              }
+        function checkHoistabilityOfNode(nodeToCheck, grandparentNode){
+          if (grandparentNode){
+            grandparentNode.children.forEach(function (child){
+                if (nodeToCheck.name === child.name){
+                    nodeToCheck.nonHoistableParents.push(grandparentNode.name)
+                    return
+                } else {
+                    grandparentNode.variables.forEach(function(variable){
+                        if(nodeToCheck.name === variable.name){
+                            nodeToCheck.nonHoistableParents.push(grandparentNode.name);
+                            return;
+                        }
+                    })
+                }
             });
-            checkHoistabilityOfNode(nodeToCheck, node.parent)
           }
         }
 
         /**
+         * add function variables to a node which is representing a single function
+         * @param _name name of the variable
+         * @param _isArgument
+         */
+        TreeNode.prototype.addVariable = function (_name, _isArgument, _jalangiApi, _type ) {
+           if(_type != 'undefined' && _type != 'function'){
+                var newVariable = {
+                    name: _name,
+                    isArgument: _isArgument,
+                    jalangiApi: _jalangiApi,
+                    type: _type
+                }
+                var variableAlreadyExists = false;
+
+                this.variables.forEach(function(variable) {
+                    if ( (variable.jalangiApi === variable.jalangiApi)
+                            && newVariable.name === variable.name){
+                        variableAlreadyExists = true;
+                    }
+                });
+                if (!variableAlreadyExists){
+                  this.variables.push(newVariable);
+                  //console.log("Added variable " +newVariable.name+" of type "+ newVariable.type+" to "+ this.name+" using JalangiApi "+newVariable.jalangiApi);
+                }
+           }
+        };
+
+        /**
+         * function checks the vailidty of a given variable by making sure that it is not a function
+         * @param _name name of the variable
+         * @param _val
+         */
+        function checkValidityOfVariable(_name, _val){
+          try{
+            if (_val != undefined){
+                // if the function is being declared then we need to ignore it
+                if(_val.toString().indexOf("function") > -1 || _name.toString().indexOf("arguments") > -1 ){ 
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+          }
+          catch(err){
+              console.log("Error while validating the variable: "+err);
+          }
+        }
+
+         /**
          * function checks whether a node is dependent on it's parent by using any of the parent variables
          * @param node
          */
@@ -212,104 +211,101 @@ cb*/
         function checkHoistabilityWithParent(node){
             node.isHoistableWithParent = false;
             node.isHoistableWithParent = node.compareHoistabilityWithParent();
-            console.log(node.name +  " isHoistableWithParent? ",node.isHoistableWithParent);
+            //console.log(node.name +  " isHoistableWithParent? ",node.isHoistableWithParent);
         }
 
+        /**
+         * this analysis uses Jalangi2 declare callback for validating and adding the variable to the node
+         * @param iid static unique instruction identifier of this callback
+         * @param name name of the variable that is declared
+         * @param val initial value of the variable that is declared
+         * @param isArgument true if the variable is arguments or a formal parameter
+         */
         this.declare = function (iid, name, val, isArgument, argumentIndex, isCatchParam) {
-            //console.log("----declare---")
-                     //console.log(val)
-            //if (val != undefined && val != null){
-                console.log("----declare-xxxxxxxxxx---")
-                console.log(val)
-                //console.log("----xxxxxxxxxx---")
-             //}
-
-            if(!checkValidityOfVariable(name, val ) && (currentNode)){
-             //console.log("----declare---")
-             //console.log(val)
-              currentNode.addVariable(name, isArgument, "declared");
+            var variableType = typeof val;
+            if(!checkValidityOfVariable(name, val) && (currentNode)){
+                currentNode.addVariable(name, isArgument, "declare", variableType);
             }
             return {result: val};
         };
 
+       /**
+         * this analysis uses Jalangi2 read callback for validating and adding the variable to the node
+         * @param iid static unique instruction identifier of this callback
+         * @param name name of the variable that is declared
+         * @param val initial value of the variable that is declared
+         */
         this.read = function (iid, name, val, isGlobal, isScriptLocal) {
-        //console.log("----read---")
-                   //console.log(val)
-             /*if (val != undefined && val != null){
-                 console.log("----read-xxxxxxxxxx---")
-                 console.log(val)
-                 console.log("----xxxxxxxxxx---")
-              }*/
-            if(!checkValidityOfVariable(name, val ) && (currentNode)){
-            //console.log("----read---")
-            //console.log(val)
-                currentNode.addVariable(name, false, "read");
+            var variableType = typeof val;
+            if(!checkValidityOfVariable(name, val) && (currentNode)){
+                currentNode.addVariable(name, false, "read", variableType);
             }
             return {result: val};
-          };
-
-        this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
-        //console.log("----read---")
-                                //console.log(val)
-           /* if (val != undefined && val != {}){
-                console.log("----write-xxxxxxxxxx---")
-                console.log(val)
-                console.log("----xxxxxxxxxx---")
-             }*/
-
-            if(val === eval) {
-                console.log("Indirect eval detected!!!",name, val );
-            }
-            else if(!checkValidityOfVariable(name, val ) && (currentNode)){
-            //console.log("----read---")
-                        //console.log(val)
-                  currentNode.addVariable(name, false, "written");
-            }
-            return {result: val};
-        }
-
-        // can be used to check if a function is constructor or method
-        this.invokeFunPre = function (iid, f, base, args, isConstructor, isMethod, functionIid, functionSid) {
-
         };
 
+        /**
+         * this analysis uses Jalangi2 write callback for validating and adding the variable to the node
+         * and also to detect indirect eval
+         * @param iid static unique instruction identifier of this callback
+         * @param name name of the variable that is declared
+         * @param val initial value of the variable that is declared
+         */
+        this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
+            var variableType = typeof val;
+            if(val === eval) {
+                //console.log("Indirect eval detected!!!",name, val );
+            }
+            else if(!checkValidityOfVariable(name, val) && (currentNode)){
+                currentNode.addVariable(name, false, "write",variableType);
+            }
+            return {result: val};
+        };
+
+        /**
+         * this analysis uses Jalangi2 functionEnter callback for creating a new tree node for every function definition
+         * @param iid static unique instruction identifier of this callback
+         * @param f the function object whose body is about to get executed
+         */
         this.functionEnter = function (iid, f, dis, args) {
+            //console.log("\n----functionEnter---")
             var curName = "NOPARENT";
             if(currentNode) curName = currentNode.name;
-
-            console.log("\nTHIS FUNCTION CALLED FOR: " + f.name + " and the currentNode is " + curName)
             var newNode = null;
-            newNode = new TreeNode(f, currentNode, false);
-            console.log("\nTHIS FUNCTION CALLED FOR: " + newNode.name + " and the currentNode is " + curName)
+            newNode = new TreeNode(f, currentNode);
+            //console.log("This function is called for " + newNode.name + " and the currentNode is " + curName)
 
+            // add root node
             if (currentNode === null) {
                 currentNode = newNode;
-                roots.push(newNode); //add root node
-                console.log(currentNode.name+" is not nested"); //may be hoistable
+                roots.push(newNode); 
+                //console.log(currentNode.name+" is not nested");
             } else {
-                //currentNode is not null so add as child to currentNode
                 currentNode.addChild(newNode);
-                console.log("Switching currentNode from " + currentNode.name + " to " + newNode.name)
+                //console.log("Switching currentNode from " + currentNode.name + " to " + newNode.name)
                 currentNode = newNode;
             }
         };
 
+        /**
+         * this analysis uses Jalangi2 functionExit callback for checking the hoistability of a function
+         * @param iid static unique instruction identifier of this callback
+         */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
-            console.log("----------on function exit-------------");
-            console.log("Current node : "+currentNode.name)
-
+            //console.log("\n----------on function exit-------------");
+            //console.log("Current node is "+currentNode.name)
+            
             checkHoistabilityWithParent(currentNode);
+
             if (currentNode != null && currentNode.parent != null) {
-                currentNode = currentNode.parent; //move back to the current node's parent
-                console.log("Current node on exit: "+currentNode.name)
-                console.log("\n");
-            }else if (currentNode.parent == null){ //the whole tree is built and currentNode is the rootNode
+                currentNode = currentNode.parent; 
+                //console.log("Current node on exit is "+currentNode.name)
+            }else if (currentNode.parent == null){
               console.log("\n")
               console.log("+++++RESULT+++++")
+              console.log(currentNode.name+" is the root node and hoisting is not required");
               checkHoistabilityWithParentSiblings(currentNode)
             }
         };
     }
-
     sandbox.analysis = new MyAnalysis();
 }(J$));

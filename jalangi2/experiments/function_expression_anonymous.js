@@ -1,26 +1,15 @@
-var functionOne = function (a) {
-  var b=1;
-
-  var functionTwo = function (){ //not hoistable
-      var b = a +1;
-      var functionThree = function (){ //not hoistable
-          var b = b + 1
-          function functionFive(){ //hoistable
-            var c = c + 1
-            return c
-          }
-          return functionFive()
-      }
-
-      function functionFour(){ //hoistable
-        var c = 3;
-        var b = b+ 2;
-        return b
-      }
-      functionFour()
-      return functionThree()
-  }
- return functionTwo();
+var functionOne = function functionOne ( param ) {
+    var b =1;
+    var two= function functionTwo (){
+        var v = param +1;
+        var three = function functionThree (){
+            var v = 10;
+            var c = v + 1;
+            return c;
+        }
+        return three ()
+    }
+    return two ();
 }
 
 module.exports = {

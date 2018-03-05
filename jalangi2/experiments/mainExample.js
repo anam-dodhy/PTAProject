@@ -1,20 +1,17 @@
-//var isHoisted = require("./example_m.js");
-//isHoisted.outerFun(1 ,2 ,3);
-
-//var hoistedFuncDecExample = require("./hoistedFuncDecExample.js")
-//hoistedFuncDecExample.functionParent("hello");
-
 var function_declaration = require("./function_declaration.js")
 function_declaration.functionParent("hello");
 
 //var function_expression = require("./function_expression.js")
 //function_expression.functionOne(2);
 
-//var recursion_1 = require("./recursion_1.js")
-//recursion_1.calculateCountDown(10);
+//var function_expression_anonymous = require("./function_expression_anonymous.js")
+//function_expression_anonymous.functionOne(2);
 
-//var hoistedFunExpDecExample = require("./hoistedFunExpDecExample.js")
-//hoistedFunExpDecExample.functionOne("hello");
+//var recursion_example = require("./recursion_example.js")
+//recursion_example.getCountDown(3);
 
-//var eval_example_2 = require("./indirect_eval_example2.js")
-//eval_example_2.parent();
+//var indirect_eval = require("./indirect_eval_example.js")
+//indirect_eval.parent();
+
+//var direct_eval = require("./direct_eval_example.js")
+//direct_eval.parent();

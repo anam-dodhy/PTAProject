@@ -1,36 +1,18 @@
-/*function functionChild3(){
-  console.log("globalChild3")
-}*/
-
-function functionParent(a) { // hoistable
+function functionParent(a) { 
   var b = 1;
-  function functionChild1(a) { //not hoistable
-    a = a + "Child1";
-  }
-  function functionChild2() { //not hoistable
-    var b = b + "CHild2";   // var should be there for jalangi to detect
+  function functionChild1() {
+    var b = a + "Child1";
 
-    function functionChild3(){ // not hoistable
-     var c = "localChild3 ";
-
-       function functionChild4(){ // not hoistable
-        var d = "localChild3 ";
-      }
-      return functionChild4();
+    function functionChild2() { 
+      var b =  "CHild2";
     }
-    function functionChild4(){ // not hoistable
-     var c = "localChild3 ";
-    }
-    functionChild4();
-    return functionChild3()
+    functionChild2();
   }
-  function functionChild4(){ // hoistable
-    console.log("Another Child3")
+  function functionChild2(){ 
+    var z = 9;
   }
-
- functionChild1();
- functionChild2();
- return functionChild4();
+  functionChild2();
+  return functionChild1();
 }
 
 module.exports = {
