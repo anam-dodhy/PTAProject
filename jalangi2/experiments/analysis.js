@@ -43,12 +43,12 @@
                 var childVars = getVariableNames(this.variables, true);
                 var parentVars = getVariableNames(this.parent.variables, false);
 
-                //console.log("Self Variables: "+childVars+" Parent Variables: "+parentVars)
+                console.log("Self Variables: "+childVars+" Parent Variables: "+parentVars)
                 childVars.forEach(function(childVar){
                     if(parentVars.indexOf(childVar)>-1) isHoistable = false;
                 })
             } else {
-                //console.log("Node has no parents");
+                console.log("Node has no parents");
             }
             return isHoistable;
         }
@@ -66,7 +66,7 @@
                 
                 //console.log(child.name + " is a recursive function")
             } else {
-                child.parent = this; 
+                child.parent = this;
                 this.children.push(child); 
             }
         };
@@ -211,7 +211,7 @@
         function checkHoistabilityWithParent(node){
             node.isHoistableWithParent = false;
             node.isHoistableWithParent = node.compareHoistabilityWithParent();
-            //console.log(node.name +  " isHoistableWithParent? ",node.isHoistableWithParent);
+            console.log(node.name +  " isHoistableWithParent? ",node.isHoistableWithParent);
         }
 
         /**
@@ -253,7 +253,7 @@
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             var variableType = typeof val;
             if(val === eval) {
-                //console.log("Indirect eval detected!!!",name, val );
+                console.log("Indirect eval detected!!!",name, val );
             }
             else if(!checkValidityOfVariable(name, val) && (currentNode)){
                 currentNode.addVariable(name, false, "write",variableType);
@@ -267,21 +267,21 @@
          * @param f the function object whose body is about to get executed
          */
         this.functionEnter = function (iid, f, dis, args) {
-            //console.log("\n----functionEnter---")
+            console.log("\n----functionEnter---")
             var curName = "NOPARENT";
             if(currentNode) curName = currentNode.name;
             var newNode = null;
             newNode = new TreeNode(f, currentNode);
-            //console.log("This function is called for " + newNode.name + " and the currentNode is " + curName)
+            console.log("This function is called for " + newNode.name + " and the currentNode is " + curName)
 
             // add root node
             if (currentNode === null) {
                 currentNode = newNode;
                 roots.push(newNode); 
-                //console.log(currentNode.name+" is not nested");
+                console.log(currentNode.name+" is not nested");
             } else {
                 currentNode.addChild(newNode);
-                //console.log("Switching currentNode from " + currentNode.name + " to " + newNode.name)
+                console.log("Switching currentNode from " + currentNode.name + " to " + newNode.name)
                 currentNode = newNode;
             }
         };
@@ -291,14 +291,14 @@
          * @param iid static unique instruction identifier of this callback
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
-            //console.log("\n----------on function exit-------------");
-            //console.log("Current node is "+currentNode.name)
+            console.log("\n----------on function exit-------------");
+            console.log("Current node is "+currentNode.name)
             
             checkHoistabilityWithParent(currentNode);
 
             if (currentNode != null && currentNode.parent != null) {
                 currentNode = currentNode.parent; 
-                //console.log("Current node on exit is "+currentNode.name)
+                console.log("Current node on exit is "+currentNode.name)
             }else if (currentNode.parent == null){
               console.log("\n")
               console.log("+++++RESULT+++++")
