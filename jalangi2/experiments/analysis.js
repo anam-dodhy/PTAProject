@@ -99,6 +99,10 @@
             return variableNames;
         }
 
+        /**
+         * function returns the line number for a given function in a node
+         * @param node
+         */
         function getLocation(node){
             return J$.iidToLocation(J$.sid, node.iid).split(":")[2];;
         }
