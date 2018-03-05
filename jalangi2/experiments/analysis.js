@@ -11,12 +11,19 @@
 
         var roots = [];
         var currentNode = null;
+        var indirectEval = false;
+        var indirectEvalFuncNames = [];
+        var iidToLocation = sandbox.iidToLocation;
+
+        function showLocation(iid) {
+            console.log('  Source Location: ' + iidToLocation(iid));
+        }
         /**
          * A Tree structure to store the hierarchy of nested functions
          * @param data function details to add to the tree node
          * @param parent parent of the node
          */
-        function TreeNode(data, parent) {
+        function TreeNode(data, parent, funcIid) {
             this.parent = parent;
             this.children = [];
             this.variables = [];
@@ -28,8 +35,9 @@
                 this.name = data.name;
             } else {
                 // assign "anonymous" string to the function name for anonymous functions
-                this.name = "anonymous"; 
+                this.name = "anonymous";
             }
+            this.iid = funcIid;
         }
 
         /**
@@ -44,9 +52,11 @@
                 var parentVars = getVariableNames(this.parent.variables, false);
 
                 console.log("Self Variables: "+childVars+" Parent Variables: "+parentVars)
-                childVars.forEach(function(childVar){
-                    if(parentVars.indexOf(childVar)>-1) isHoistable = false;
-                })
+                if(childVars.length > 0){
+                    childVars.forEach(function(childVar){
+                        if(parentVars.indexOf(childVar)>-1) isHoistable = false;
+                    })
+                }
             } else {
                 console.log("Node has no parents");
             }
@@ -60,14 +70,14 @@
         TreeNode.prototype.addChild = function (child) {
             // check if 'this' and child are same. If yes, then it is a recursive call. Do not add child
             if(this.funcBody === child.funcBody && this.name.localeCompare(child.name) == 0
-                // if the function name is anonymous then it is part of un-named function expression 
+                // if the function name is anonymous then it is part of un-named function expression
                 // we need to add that to our stack
                 && this.name != "anonymous" && child.name != "anonymous"){
-                
+
                 //console.log(child.name + " is a recursive function")
             } else {
                 child.parent = this;
-                this.children.push(child); 
+                this.children.push(child);
             }
         };
 
@@ -79,14 +89,16 @@
         function getVariableNames(variableObjects, isChild) {
             var variableNames = [];
 
-            variableObjects.forEach(function(variable) {
-                if (isChild && (variable.jalangiApi == "declare" || variable.jalangiApi == "write")){
-                   // ignore child declared variables
-                }
-                else{
-                    variableNames.push(variable.name)
-                }
-            });
+            if(variableObjects.length > 0){
+                variableObjects.forEach(function(variable) {
+                    if (isChild && (variable.jalangiApi == "declare" || variable.jalangiApi == "write")){
+                    // ignore child declared variables
+                    }
+                    else{
+                        variableNames.push(variable.name)
+                    }
+                });
+            }
             return variableNames;
         }
 
@@ -96,8 +108,9 @@
          */
         function printNodeResult(node){
             result = "";
+            var location = J$.iidToLocation(J$.sid, node.iid).split(":")[2];
             if (node.isHoistableWithParent === true){
-                result = node.name + " under "+ node.parent.name + " is hoistable GREAT!! ";
+                result = node.name +" at line number "+location+" under "+ node.parent.name + " is hoistable GREAT!! ";
                 if (node.nonHoistableParents.length > 0){
                     result = result + "But NOT hoistable under ";
                     node.nonHoistableParents.forEach(function (nonHoistableParent){
@@ -105,7 +118,7 @@
                 });
                 }
             } else {
-                result = node.name + " under "+  node.parent.name +" is NOT hoistable.";
+                result = node.name +" at line number "+location+ " under "+  node.parent.name +" is NOT hoistable.";
             }
             console.log(result)
         }
@@ -137,21 +150,21 @@
          * @param grandparentNode grandparent or parent's parent node of the nodeToCheck
          */
         function checkHoistabilityOfNode(nodeToCheck, grandparentNode){
-          if (grandparentNode){
-            grandparentNode.children.forEach(function (child){
-                if (nodeToCheck.name === child.name){
-                    nodeToCheck.nonHoistableParents.push(grandparentNode.name)
-                    return
-                } else {
-                    grandparentNode.variables.forEach(function(variable){
-                        if(nodeToCheck.name === variable.name){
-                            nodeToCheck.nonHoistableParents.push(grandparentNode.name);
-                            return;
-                        }
-                    })
-                }
-            });
-          }
+            if (grandparentNode && grandparentNode.children.length > 0 && grandparentNode.variables.length > 0){
+                grandparentNode.children.forEach(function (child){
+                    if (nodeToCheck.name === child.name){
+                        nodeToCheck.nonHoistableParents.push(grandparentNode.name)
+                        return
+                    } else {
+                        grandparentNode.variables.forEach(function(variable){
+                            if(nodeToCheck.name === variable.name){
+                                nodeToCheck.nonHoistableParents.push(grandparentNode.name);
+                                return;
+                            }
+                        })
+                    }
+                });
+            }
         }
 
         /**
@@ -169,12 +182,14 @@
                 }
                 var variableAlreadyExists = false;
 
-                this.variables.forEach(function(variable) {
-                    if ( (variable.jalangiApi === variable.jalangiApi)
-                            && newVariable.name === variable.name){
-                        variableAlreadyExists = true;
-                    }
-                });
+                if(this.variables.length > 0){
+                    this.variables.forEach(function(variable) {
+                        if ( (variable.jalangiApi === variable.jalangiApi)
+                                && newVariable.name === variable.name){
+                            variableAlreadyExists = true;
+                        }
+                    });
+                }
                 if (!variableAlreadyExists){
                   this.variables.push(newVariable);
                   //console.log("Added variable " +newVariable.name+" of type "+ newVariable.type+" to "+ this.name+" using JalangiApi "+newVariable.jalangiApi);
@@ -191,7 +206,7 @@
           try{
             if (_val != undefined){
                 // if the function is being declared then we need to ignore it
-                if(_val.toString().indexOf("function") > -1 || _name.toString().indexOf("arguments") > -1 ){ 
+                if(_val.toString().indexOf("function") > -1 || _name.toString().indexOf("arguments") > -1 ){
                     return true;
                 } else {
                     return false;
@@ -215,8 +230,29 @@
         }
 
         /**
+         * this analysis uses Jalangi2 literal callback to get the name of function in indirect eval
+         * @param val initial value of the variable that is declared
+         */
+        this.literal = function(iid, val, hasGetterSetter){
+            var literalName = val.name;
+            if(indirectEval === true && literalName != undefined){
+                indirectEvalFuncNames.push(literalName);
+                indirectEval = false;
+            }
+        }
+
+        /**
+         * this analysis uses Jalangi2 instrumentCodePre callback to know if the eval is direct or indirect
+         * @param isDirect static unique instruction identifier of this callback
+         */
+        this.instrumentCodePre= function(iid, code, isDirect){
+            if(isDirect === false){
+                indirectEval = true;
+            }
+        }
+
+        /**
          * this analysis uses Jalangi2 declare callback for validating and adding the variable to the node
-         * @param iid static unique instruction identifier of this callback
          * @param name name of the variable that is declared
          * @param val initial value of the variable that is declared
          * @param isArgument true if the variable is arguments or a formal parameter
@@ -231,7 +267,6 @@
 
        /**
          * this analysis uses Jalangi2 read callback for validating and adding the variable to the node
-         * @param iid static unique instruction identifier of this callback
          * @param name name of the variable that is declared
          * @param val initial value of the variable that is declared
          */
@@ -245,18 +280,16 @@
 
         /**
          * this analysis uses Jalangi2 write callback for validating and adding the variable to the node
-         * and also to detect indirect eval
-         * @param iid static unique instruction identifier of this callback
+         * ignore the variable(called indirect eval) which is a reference to an eval
          * @param name name of the variable that is declared
          * @param val initial value of the variable that is declared
          */
         this.write = function (iid, name, val, lhs, isGlobal, isScriptLocal) {
             var variableType = typeof val;
-            if(val === eval) {
-                console.log("Indirect eval detected!!!",name, val );
-            }
-            else if(!checkValidityOfVariable(name, val) && (currentNode)){
-                currentNode.addVariable(name, false, "write",variableType);
+            if(val != eval) {
+                if(!checkValidityOfVariable(name, val) && (currentNode)){
+                    currentNode.addVariable(name, false, "write",variableType);
+                }
             }
             return {result: val};
         };
@@ -271,18 +304,28 @@
             var curName = "NOPARENT";
             if(currentNode) curName = currentNode.name;
             var newNode = null;
-            newNode = new TreeNode(f, currentNode);
+            newNode = new TreeNode(f, currentNode, iid);
             console.log("This function is called for " + newNode.name + " and the currentNode is " + curName)
 
             // add root node
             if (currentNode === null) {
                 currentNode = newNode;
-                roots.push(newNode); 
+                roots.push(newNode);
                 console.log(currentNode.name+" is not nested");
             } else {
-                currentNode.addChild(newNode);
-                console.log("Switching currentNode from " + currentNode.name + " to " + newNode.name)
-                currentNode = newNode;
+                if(indirectEvalFuncNames.length > 0){
+                    indirectEvalFuncNames.forEach(function(funcName) {
+                        if (funcName != newNode.name){
+                            currentNode.addChild(newNode);
+                            console.log("Switching currentNode from " + currentNode.name + " to " + newNode.name)
+                            currentNode = newNode;
+                        }
+                    });
+                } else {
+                    currentNode.addChild(newNode);
+                    console.log("Switching currentNode from " + currentNode.name + " to " + newNode.name)
+                    currentNode = newNode;
+                }
             }
         };
 
@@ -293,17 +336,22 @@
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
             console.log("\n----------on function exit-------------");
             console.log("Current node is "+currentNode.name)
-            
+
             checkHoistabilityWithParent(currentNode);
 
             if (currentNode != null && currentNode.parent != null) {
-                currentNode = currentNode.parent; 
+                currentNode = currentNode.parent;
                 console.log("Current node on exit is "+currentNode.name)
             }else if (currentNode.parent == null){
-              console.log("\n")
-              console.log("+++++RESULT+++++")
+              console.log("\n");
+              console.log("+++++RESULT+++++");
               console.log(currentNode.name+" is the root node and hoisting is not required");
-              checkHoistabilityWithParentSiblings(currentNode)
+              checkHoistabilityWithParentSiblings(currentNode);
+              if(indirectEvalFuncNames.length > 0){
+                indirectEvalFuncNames.forEach(function(funcName) {
+                    console.log(funcName+" is a function invoked by an Indirect Eval. So hoisting is not required.");
+                });
+            }
             }
         };
     }
