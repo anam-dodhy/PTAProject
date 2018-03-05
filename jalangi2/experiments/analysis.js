@@ -15,9 +15,6 @@
         var indirectEvalFuncNames = [];
         var iidToLocation = sandbox.iidToLocation;
 
-        function showLocation(iid) {
-            console.log('  Source Location: ' + iidToLocation(iid));
-        }
         /**
          * A Tree structure to store the hierarchy of nested functions
          * @param data function details to add to the tree node
@@ -102,23 +99,27 @@
             return variableNames;
         }
 
+        function getLocation(node){
+            return J$.iidToLocation(J$.sid, node.iid).split(":")[2];;
+        }
+
         /**
          * function checks the hoistability flags of a given node and logs a string with the result
          * @param node
          */
         function printNodeResult(node){
             result = "";
-            var location = J$.iidToLocation(J$.sid, node.iid).split(":")[2];
+
             if (node.isHoistableWithParent === true){
-                result = node.name +" at line number "+location+" under "+ node.parent.name + " is hoistable GREAT!! ";
+                result = "\n"+node.name +" at line "+getLocation(node)+" under "+ node.parent.name +" at line "+getLocation(node.parent)+ " is hoistable GREAT!! ";
                 if (node.nonHoistableParents.length > 0){
                     result = result + "But NOT hoistable under ";
                     node.nonHoistableParents.forEach(function (nonHoistableParent){
-                    result = result + nonHoistableParent + ", ";
+                    result = result + nonHoistableParent +", ";
                 });
                 }
             } else {
-                result = node.name +" at line number "+location+ " under "+  node.parent.name +" is NOT hoistable.";
+                result = "\n"+node.name +" at line "+getLocation(node)+ " under "+  node.parent.name +" at line "+getLocation(node.parent)+ " is NOT hoistable.";
             }
             console.log(result)
         }
@@ -234,10 +235,12 @@
          * @param val initial value of the variable that is declared
          */
         this.literal = function(iid, val, hasGetterSetter){
-            var literalName = val.name;
-            if(indirectEval === true && literalName != undefined){
-                indirectEvalFuncNames.push(literalName);
-                indirectEval = false;
+            if(val != null){
+                var literalName = val.name;
+                if(indirectEval === true && literalName != undefined){
+                    indirectEvalFuncNames.push(literalName);
+                    indirectEval = false;
+                }
             }
         }
 
@@ -335,13 +338,13 @@
          */
         this.functionExit = function (iid, returnVal, wrappedExceptionVal) {
             console.log("\n----------on function exit-------------");
-            console.log("Current node is "+currentNode.name)
+            console.log("Current node is "+currentNode.name+" at line "+getLocation(currentNode));
 
             checkHoistabilityWithParent(currentNode);
 
             if (currentNode != null && currentNode.parent != null) {
                 currentNode = currentNode.parent;
-                console.log("Current node on exit is "+currentNode.name)
+                console.log("Current node on exit is "+currentNode.name+" at line "+getLocation(currentNode))
             }else if (currentNode.parent == null){
               console.log("\n");
               console.log("+++++RESULT+++++");
